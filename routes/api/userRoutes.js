@@ -1,52 +1,34 @@
 const router = require('express').Router()
 const bcrypt = require('bcrypt')
-const Manager = require('../../models/Manager')
-const Driver = require('../../models/Driver')
 const Costs = require('../../models/Costs')
-const { Op, where } = require('sequelize')
-const Dispatcher = require('../../models/Dispatcher')
+const Admin = require('../../models/Admin')
+const User = require('../../models/User')
 
-//Check if driver with an email already exists during sign up.
-router.get('/check', async (req, res) => {
+//Check if driver with an email or username already exists during sign up.
+router.post('/check', async (req, res) => {
   try {
-    if (req.query.accountType === 'manager') {
-      const checkEmail = await Manager.findOne({
-        where: {
-          [Op.or]: [
-            { email: req.query.email },
-            { username: req.query.username }
-          ]
-        }
-      })
-      res.status(200).json(checkEmail)
-    } else if (req.query.accountType === 'owner') {
-      const checkEmail = await Driver.findOne({
-        where: {
-          [Op.or]: [
-            { email: req.query.email },
-            { username: req.query.username }
-          ]
-        }
-      })
-      res.status(200).json(checkEmail)
+    if (req.body.admin === true) {
+      const usernameExists = await Admin.exists({ username: req.body.username })
+      const emailExists = await Admin.exists({ email: req.body.email })
+      if (usernameExists === null && emailExists === null) {
+        res.status(404).json({ msg: 'No user with that email or username' })
+      } else if (emailExists && usernameExists) {
+        res.status(200).json({ msg: 'Email and username already in use' })
+      } else if(usernameExists === null){
+        res.status(200).json({ msg: 'User already exists with that email' })
+      } else {
+        res.status(200).json({ msg: 'Username is already taken' })
+      }
     } else {
-      const checkEmail = await Dispatcher.findOne({
-        where: {
-          [Op.or]: [
-            { email: req.query.email },
-            { username: req.query.username }
-          ]
-        }
-      })
-      res.status(200).json(checkEmail)
+      
     }
   } catch (err) {
     res.status(500).json(err)
   }
 })
 
-//Create a Driver
-router.post('/driver', async (req, res) => {
+//Create a User
+router.post('/user', async (req, res) => {
   try {
     const userData = await Driver.create({ email: req.body.email, username: req.body.username, password: req.body.password })
 
@@ -72,34 +54,32 @@ router.post('/driver', async (req, res) => {
   }
 })
 
-//Create a Manager
-router.post('/manager', async (req, res) => {
+//Create an admin
+router.post('/admin', async (req, res) => {
   try {
-    const userData = await Manager.create({ email: req.body.email, username: req.body.username, password: req.body.password })
-    const driversArray = req.body.drivers
-    driversArray.forEach((el, i) => {
-      const driver = { ...el, manager: userData.manager_id }
-      driversArray[i] = driver
+    const newAdmin = await Admin.create({
+      email: req.body.email,
+      username: req.body.username,
+      password: req.body.password
     })
-    const driversData = await Driver.bulkCreate(driversArray)
-    const costsData = await Costs.create({
-      manager_id: userData.manager_id,
-      insurance: req.body.insurance,
-      tractorLease: req.body.tractorLease,
-      trailerLease: req.body.trailerLease,
-      dispatch: req.body.dispatch,
-      mpg: req.body.mpg,
-      laborRate: req.body.laborRate,
-      payrollTax: req.body.payrollTax,
-      factor: req.body.factor,
-      odc: req.body.odc,
-      gAndA: req.body.gAndA,
-      loan: req.body.loan,
-      repairs: req.body.repairs,
-      depreciation: req.body.depreciation,
-      parking: req.body.parking
-    })
-    res.status(200).json([userData, costsData, driversData])
+    // const costsData = await Costs.create({
+    //   belongsTo: req.body.username,
+    //   insurance: req.body.insurance,
+    //   tractorLease: req.body.tractorLease,
+    //   trailerLease: req.body.trailerLease,
+    //   dispatch: req.body.dispatch,
+    //   mpg: req.body.mpg,
+    //   laborRate: req.body.laborRate,
+    //   payrollTax: req.body.payrollTax,
+    //   factor: req.body.factor,
+    //   odc: req.body.odc,
+    //   gAndA: req.body.gAndA,
+    //   loan: req.body.loan,
+    //   repairs: req.body.repairs,
+    //   depreciation: req.body.depreciation,
+    //   parking: req.body.parking
+    // })
+    res.status(200).json(newAdmin)
   } catch (err) {
     res.status(400).json(err)
   }
@@ -115,42 +95,24 @@ router.post('/dispatcher', async (req, res) => {
   }
 })
 
-//Get drivers belonging to a manager
+//Get drivers belonging to an admin
 router.post('/getDrivers', async (req, res) => {
   try {
-    const drivers = await Driver.findAll({
-      where: {manager: req.body.manager}
-    })
-    res.status(200).json(drivers)
+
   } catch (error) {
     res.status(400).json(error)
   }
 })
 
-//Get drivers based on dispatcher
-router.post('getDispatchersDrivers', async (req, res) => {
+//Get dispatcher belonging to an admin
+router.post('/getDispatcher', async (req, res) => {
   try {
-    const dispatcher = await Dispatcher.findOne({
-      where: {
-        dispatcher_id: req.body.id
-      }
-    })
-    const manager = await Manager.findOne({
-      where: {
-        manager_id: dispatcher.manager
-      }
-    })
-    const drivers = await Drivers.findAll({
-      where: {
-        manager: manager.manager_id
-      }
-    })
-    res.status(200).json(drivers)
+
   } catch (error) {
     res.status(400).json(error)
   }
 })
- 
+
 //Get all managers
 router.get('/getManagers', async (req, res) => {
   try {

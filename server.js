@@ -1,6 +1,6 @@
 const express = require('express')
 const routes = require('./routes')
-const sequelize = require('./config/connection')
+const db = require('./config/connection')
 const cors = require('cors')
 require('dotenv').config()
 
@@ -14,6 +14,8 @@ app.use(cors())
 app.use('/', express.static(__dirname + 'public'))
 app.use(routes)
 
-sequelize.sync().then(() => {
-    app.listen(PORT, () => console.log('Now listening'))
+db.once('open', () => {
+    app.listen(PORT, () => {
+        console.log(`API server running on port ${PORT}`)
+    })
 })

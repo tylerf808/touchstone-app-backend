@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const bcrypt = require('bcrypt')
 
 const Schema = mongoose.Schema
 
@@ -39,6 +40,6 @@ adminSchema.methods.isCorrectPassword = async function (password) {
     return bcrypt.compare(password, this.password)
 }
 
-const Admin = model('Admin', adminSchema);
+const Admin = mongoose.model('Admin', adminSchema);
 
 module.exports = Admin;
