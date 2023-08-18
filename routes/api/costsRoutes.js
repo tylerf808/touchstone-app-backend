@@ -69,7 +69,8 @@ router.post('/', async (req, res) => {
 //Update costs
 router.put('/', async (req, res) => {
   try {
-    const costsData = await Costs.findOneAndUpdate({belongsTo: req.body.username})
+    await Costs.findOneAndDelete({belongsTo: req.body.username})
+    const costsData = Costs.create(req.body)
     res.status(200).json(costsData)
   } catch (err) {
     res.status(500).json(err)

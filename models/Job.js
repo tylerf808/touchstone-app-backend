@@ -6,99 +6,135 @@ const jobSchema = new Schema({
 
   start: {
     type: String,
+    required: true
   },
   pickUp: {
     type: String,
+    required: true
   },
   dropOff: {
     type: String,
+    required: true
   },
   revenue: {
     type: Number,
+    required: true
   },
   grossProfitPercentage: {
-    type: String,
+    type: Number,
+    required: true
   },
   operatingProfitPercentage: {
-    type: String
+    type: Number,
+    required: true
   },
   netProfitPercentage: {
-    type: String
+    type: Number,
+    required: true
   },
   distance: {
     type: Number,
+    required: true
   },
   date: {
     type: String,
+    required: true
   },
   gasCost: {
     type: Number,
+    required: true
   },
   ratePerMile: {
-    type: Number
+    type: Number,
+    required: true
   },
   depreciation: {
     type: Number,
+    required: true
   },
   factor: {
     type: Number,
+    required: true
   },
   gAndA: {
     type: Number,
+    required: true
   },
   loan: {
     type: Number,
+    required: true
   },
   odc: {
     type: Number,
+    required: true
   },
   repairs: {
     type: Number,
+    required: true
   },
   labor: {
-    type: Number
+    type: Number,
+    required: true
   },
   dispatch: {
-    type: Number
+    type: Number,
+    required: true
   },
   payrollTax: {
-    type: Number
+    type: Number,
+    required: true
   },
   netProfit: {
-    type: Number
+    type: Number,
+    required: true
   },
   laborRatePercent: {
-    type: String
+    type: Number,
+    required: true
   },
   insurance: {
-    type: Number
+    type: Number,
+    required: true
   },
   trailer: {
-    type: Number
+    type: Number,
+    required: true
   },
   tractor: {
-    type: Number
+    type: Number,
+    required: true
   },
   tolls: {
-    type: Number
+    type: Number,
+    required: true
   },
   grossProfit: {
-    type: Number
+    type: Number,
+    required: true
   },
   operatingProfit: {
-    type: Number
+    type: Number,
+    required: true
   },
   totalFixedCost: {
-    type: Number
+    type: Number,
+    required: true
   },
   driveTime: {
-    type: String
+    type: String,
+    required: true
   },
   client: {
-    type: String
+    type: String,
+    required: true
   },
   driver: {
-    type: String
+    type: String,
+    required: true
+  },
+  admin: {
+    type: String,
+    required: true
   }
 },
   {
