@@ -5,7 +5,7 @@ const Schema = mongoose.Schema
 const costsSchema = new Schema({
 
     belongsTo: {
-        type: String
+        type: String,
     },
     laborRate: {
         type: Number
@@ -44,6 +44,9 @@ const costsSchema = new Schema({
         type: Number
     },
     mpg: {
+        type: Number
+    },
+    overhead: {
         type: Number
     },
     parking: {

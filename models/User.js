@@ -18,7 +18,7 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    manager: {
+    admin: {
         type: String,
         required: false
     },

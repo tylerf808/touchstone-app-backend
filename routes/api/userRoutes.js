@@ -56,36 +56,51 @@ router.post('/newOwner', async (req, res) => {
 //Create an admin
 router.post('/newAdmin', async (req, res) => {
   try {
-    // let drivers
-    // if(req.body.drivers){
-    //   drivers = await User.insertMany(req.body.drivers)
-    // }
+    let drivers
+    if (req.body.drivers) {
+      drivers = await User.insertMany(req.body.drivers)
+    }
     const newAdmin = await User.create({
       email: req.body.email,
       username: req.body.username,
       password: req.body.password,
-      accountType: req.body.accountType
+      accountType: 'admin'
     })
-    // const costsData = await Costs.create({
-    //   belongsTo: req.body.username,
-    //   insurance: req.body.insurance,
-    //   tractorLease: req.body.tractorLease,
-    //   trailerLease: req.body.trailerLease,
-    //   dispatch: req.body.dispatch,
-    //   mpg: req.body.mpg,
-    //   laborRate: req.body.laborRate,
-    //   payrollTax: req.body.payrollTax,
-    //   factor: req.body.factor,
-    //   odc: req.body.odc,
-    //   gAndA: req.body.gAndA,
-    //   loan: req.body.loan,
-    //   repairs: req.body.repairs,
-    //   depreciation: req.body.depreciation,
-    //   parking: req.body.parking
-    // })
-    res.status(200).json([newAdmin, costsData, drivers])
+    const costsData = await Costs.create({
+      belongsTo: req.body.username,
+      insurance: req.body.insurance,
+      tractorLease: req.body.tractorLease,
+      trailerLease: req.body.trailerLease,
+      dispatch: req.body.dispatch,
+      mpg: req.body.mpg,
+      laborRate: req.body.laborRate,
+      payrollTax: req.body.payrollTax,
+      factor: req.body.factor,
+      odc: req.body.odc,
+      gAndA: req.body.gAndA,
+      loan: req.body.loan,
+      repairs: req.body.repairs,
+      parking: req.body.parking
+    })
+    res.status(200).json([newAdmin, costsData])
   } catch (error) {
     res.status(500).json(error)
+  }
+})
+
+//Create a dispatcher
+router.post('/newDispatcher', async (req, res) => {
+  try {
+    const userData = await User.create({
+      email: req.body.email,
+      username: req.body.username,
+      password: req.body.password,
+      accountType: "dispatcher",
+      admin: req.body.admin
+    })
+    res.status(200).json(userData)
+  } catch (err) {
+    res.status(400).json(err)
   }
 })
 
@@ -97,11 +112,20 @@ router.post('/newDriver', async (req, res) => {
       username: req.body.username,
       password: req.body.password,
       accountType: "driver",
-      manager: req.body.admin
+      admin: req.body.admin
     })
     res.status(200).json(userData)
   } catch (err) {
     res.status(400).json(err)
+  }
+})
+
+router.get('/getAdmins', async (req, res) => {
+  try {
+    const admins = await User.find({accountType: 'admin'})
+    res.status(200).json(admins)
+  } catch (error) {
+    res.status(500).json(error)
   }
 })
 
@@ -111,7 +135,7 @@ router.post('/getDrivers', async (req, res) => {
     const drivers = await User.find({ manager: req.body.admin, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
-    res.status(400).json(error)
+    res.status(500).json(error)
   }
 })
 
@@ -121,14 +145,14 @@ router.post('/getDispatcher', async (req, res) => {
     const dispatchers = await User.find({ manager: req.body.admin, accountType: 'dispatcher' })
     res.status(200).json(dispatchers)
   } catch (error) {
-    res.status(400).json(error)
+    res.status(500).json(error)
   }
 })
 
 //Login
 router.post('/login', async (req, res) => {
   try {
-    const user = await User.find({$or: [{ username: req.body.username }, { email: req.body.email }]})
+    const user = await User.find({ $or: [{ username: req.body.username }, { email: req.body.email }] })
     if (user.length === 0) {
       res.status(404).json({ msg: 'User not found' })
     } else {
