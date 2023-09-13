@@ -56,10 +56,16 @@ router.post('/newOwner', async (req, res) => {
 //Create an admin
 router.post('/newAdmin', async (req, res) => {
   try {
-    let drivers
-    if (req.body.drivers) {
-      drivers = await User.insertMany(req.body.drivers)
-    }
+    const drivers = req.body.drivers
+    drivers.forEach((driver) => {
+       User.create({
+        email: driver.email,
+        username: driver.username,
+        password: driver.password,
+        name: driver.name,
+        accountType: 'driver'
+      })
+    })
     const newAdmin = await User.create({
       email: req.body.email,
       username: req.body.username,
@@ -84,6 +90,7 @@ router.post('/newAdmin', async (req, res) => {
     })
     res.status(200).json([newAdmin, costsData])
   } catch (error) {
+    console.log(error)
     res.status(500).json(error)
   }
 })
