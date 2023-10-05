@@ -58,7 +58,7 @@ router.post('/newAdmin', async (req, res) => {
   try {
     const drivers = req.body.drivers
     drivers.forEach((driver) => {
-       User.create({
+      User.create({
         email: driver.email,
         username: driver.username,
         password: driver.password,
@@ -129,7 +129,7 @@ router.post('/newDriver', async (req, res) => {
 
 router.get('/getAdmins', async (req, res) => {
   try {
-    const admins = await User.find({accountType: 'admin'})
+    const admins = await User.find({ accountType: 'admin' })
     res.status(200).json(admins)
   } catch (error) {
     res.status(500).json(error)
@@ -156,16 +156,36 @@ router.post('/getDispatcher', async (req, res) => {
   }
 })
 
-//Login
-router.post('/login', async (req, res) => {
+//Login with email
+router.post('/emailLogin', async (req, res) => {
   try {
-    const user = await User.find({ $or: [{ username: req.body.username }, { email: req.body.email }] })
-    if (user.length === 0) {
-      res.status(404).json({ msg: 'User not found' })
-    } else {
-      res.status(200).json(user)
+    const user = await User.findOne({ email: req.body.email })
+    const password = req.body.password
+    const correctPw = await user.isCorrectPassword(password)
+    if (!correctPw) {
+      res.status(401).json({ msg: 'wrong password' })
+      return
     }
+    res.status(200).json(user)
   } catch (err) {
+    console.log(err)
+    res.status(500).json(err)
+  }
+})
+
+//Login with username
+router.post('/usernameLogin', async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.body.username })
+    const password = req.body.password
+    const correctPw = await user.isCorrectPassword(password)
+    if (!correctPw) {
+      res.status(401).json({ msg: 'wrong password' })
+      return
+    }
+    res.status(200).json(user)
+  } catch (err) {
+    console.log(err)
     res.status(500).json(err)
   }
 })
