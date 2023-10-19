@@ -160,6 +160,10 @@ router.post('/getDispatcher', async (req, res) => {
 router.post('/emailLogin', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email })
+    if(!user){
+      res.status(404).json({msg: 'No user found'})
+      return
+    }
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
@@ -177,6 +181,10 @@ router.post('/emailLogin', async (req, res) => {
 router.post('/usernameLogin', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username })
+    if(!user){
+      res.status(404).json({msg: 'No user found'})
+      return
+    }
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
