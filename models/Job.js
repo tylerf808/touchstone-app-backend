@@ -21,15 +21,15 @@ const jobSchema = new Schema({
     required: true
   },
   grossProfitPercentage: {
-    type: Number,
+    type: String,
     required: true
   },
   operatingProfitPercentage: {
-    type: Number,
+    type: String,
     required: true
   },
   netProfitPercentage: {
-    type: Number,
+    type: String,
     required: true
   },
   distance: {
@@ -45,10 +45,6 @@ const jobSchema = new Schema({
     required: true
   },
   ratePerMile: {
-    type: Number,
-    required: true
-  },
-  depreciation: {
     type: Number,
     required: true
   },
@@ -89,7 +85,7 @@ const jobSchema = new Schema({
     required: true
   },
   laborRatePercent: {
-    type: Number,
+    type: String,
     required: true
   },
   insurance: {
