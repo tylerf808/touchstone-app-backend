@@ -167,7 +167,7 @@ router.post('/emailLogin', async (req, res) => {
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'wrong password' })
+      res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
     res.status(200).json(user)
@@ -188,7 +188,7 @@ router.post('/usernameLogin', async (req, res) => {
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'wrong password' })
+      res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
     res.status(200).json(user)
