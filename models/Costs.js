@@ -51,6 +51,9 @@ const costsSchema = new Schema({
     },
     parking: {
         type: Number
+    },
+    tractorNum: {
+        type: Number
     }
 },
     {
