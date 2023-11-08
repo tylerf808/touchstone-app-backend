@@ -63,7 +63,8 @@ router.post('/newAdmin', async (req, res) => {
         username: driver.username,
         password: driver.password,
         name: driver.name,
-        accountType: 'driver'
+        accountType: 'driver',
+        admin: req.body.username
       })
     })
     const newAdmin = await User.create({
