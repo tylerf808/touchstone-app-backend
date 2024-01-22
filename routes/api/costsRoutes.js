@@ -1,21 +1,21 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
-const {getDirections, getGasPrice} = require('../../utils/helpers')
+const { getDirections, getGasPrice } = require('../../utils/helpers')
 
 router.post('/check', async (req, res) => {
   const directionsRes = await getDirections(req.body.start, req.body.pick_up, req.body.drop_off)
   const gasPrice = await getGasPrice(req.body.state1, req.body.state2, req.body.state3)
   let tolls = (directionsRes.routes[0]?.travelAdvisory?.tollInfo?.estimatedPrice[0]?.units)
   const duration = (directionsRes.routes[0].duration)
-  if(tolls === undefined){
+  if (tolls === undefined) {
     tolls = 0
   }
   const totalDistance = (directionsRes.routes[0].distanceMeters) / 1609.34
 
-  const costs = await Costs.findOne({ belongsTo: req.body.username})
-  
-  if(costs === null){
-    res.status(404).json({message: 'User has no costs'})
+  const costs = await Costs.findOne({ belongsTo: req.body.username })
+
+  if (costs === null) {
+    res.status(404).json({ message: 'User has no costs' })
     return
   }
   const gasMpgCalc = (totalDistance / costs.mpg) * gasPrice
@@ -39,7 +39,8 @@ router.post('/check', async (req, res) => {
     depreciation: costs.depreciation,
     costs_id: costs.costs_id,
     tolls: tolls,
-    duration: duration
+    duration: duration,
+    tractorNum: costs.tractorNum
   })
 })
 
@@ -48,7 +49,7 @@ router.post('/check', async (req, res) => {
 //TODO: make it check the id of the costs obj and bring back the one associated to who signs in
 router.post('/', async (req, res) => {
   try {
-    const costsData = await Costs.find({ belongsTo: req.body.username})
+    const costsData = await Costs.find({ belongsTo: req.body.username })
     res.status(200).json(costsData)
   } catch (error) {
     res.status(404).json(error)
@@ -57,7 +58,7 @@ router.post('/', async (req, res) => {
 
 //////POST Routes
 //Add new costs obj
-router.post('/', async (req, res) => {
+router.post('/newCosts', async (req, res) => {
   await Costs.create(req.body)
     .then((newCosts) => {
       res.json(newCosts)
@@ -68,13 +69,12 @@ router.post('/', async (req, res) => {
 })
 
 //Update costs
-router.put('/', async (req, res) => {
+router.post('/update', async (req, res) => {
   try {
-    await Costs.findOneAndDelete({belongsTo: req.body.username})
-    const costsData = Costs.create(req.body)
+    const costsData =  await Costs.updateOne({belongsTo: req.body.belongsTo}, req.body, {new: true})
     res.status(200).json(costsData)
-  } catch (err) {
-    res.status(500).json(err)
+  } catch (error) {
+    res.status(500).json(error)
   }
 })
 

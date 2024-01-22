@@ -45,7 +45,9 @@ router.post('/newOwner', async (req, res) => {
       gAndA: req.body.gAndA,
       loan: req.body.loan,
       repairs: req.body.repairs,
-      parking: req.body.parking
+      parking: req.body.parking,
+      tractorNum: req.body.tractorNum,
+      overhead: req.body.overhead
     })
     res.status(200).json([userData, costsData])
   } catch (err) {
@@ -73,6 +75,14 @@ router.post('/newAdmin', async (req, res) => {
       password: req.body.password,
       accountType: 'admin'
     })
+    const newDispatcher = await User.create({
+      email: req.body.dispatcher.email,
+      username: req.body.dispatcher.username,
+      password: req.body.dispatcher.password,
+      company: req.body.dispatcher.company,
+      name: req.body.dispatcher.name,
+      accountType: 'dispatcher'
+    })
     const costsData = await Costs.create({
       belongsTo: req.body.username,
       insurance: req.body.insurance,
@@ -87,9 +97,11 @@ router.post('/newAdmin', async (req, res) => {
       gAndA: req.body.gAndA,
       loan: req.body.loan,
       repairs: req.body.repairs,
-      parking: req.body.parking
+      parking: req.body.parking,
+      tractorNum: req.body.tractorNum,
+      overhead: req.body.overhead
     })
-    res.status(200).json([newAdmin, costsData])
+    res.status(200).json([newAdmin, costsData, newDispatcher])
   } catch (error) {
     console.log(error)
     res.status(500).json(error)
@@ -102,12 +114,15 @@ router.post('/newDispatcher', async (req, res) => {
     const userData = await User.create({
       email: req.body.email,
       username: req.body.username,
-      password: req.body.password,
       accountType: "dispatcher",
-      admin: req.body.admin
+      admin: req.body.admin,
+      name: req.body.name,
+      company: req.body.company,
+      password: req.body.password
     })
     res.status(200).json(userData)
   } catch (err) {
+    console.log(err)
     res.status(400).json(err)
   }
 })
