@@ -29,6 +29,12 @@ const userSchema = new Schema({
     accountType: {
         type: String,
         required: true
+    },
+    isAvailable: {
+        type: Boolean
+    },
+    company: {
+        type: String
     }
 },
     {

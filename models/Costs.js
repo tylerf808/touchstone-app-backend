@@ -16,9 +16,6 @@ const costsSchema = new Schema({
     dispatch: {
         type: Number
     },
-    insuranceType: {
-        type: String
-    },
     insurance: {
         type: Number
     },
@@ -50,6 +47,9 @@ const costsSchema = new Schema({
         type: Number
     },
     parking: {
+        type: Number
+    },
+    tractorNum: {
         type: Number
     }
 },
