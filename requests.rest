@@ -1,0 +1,11 @@
+GET http://localhost:8080/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3QiLCJpYXQiOjE3MDYwMzE5ODMsImV4cCI6MTcwNjAzMjAwM30.comM5Xw1eIKlGUXrZ-OwceRTEIfkZNaTLUeggd-436Q
+
+###
+
+POST http://localhost:8080/Login 
+Content-Type: application/json
+
+{
+    "username": "test"
+}
