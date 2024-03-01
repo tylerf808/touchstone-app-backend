@@ -47,7 +47,9 @@ router.post('/newOwner', async (req, res) => {
       gAndA: req.body.gAndA,
       loan: req.body.loan,
       repairs: req.body.repairs,
-      parking: req.body.parking
+      parking: req.body.parking,
+      tractorNum: req.body.tractorNum,
+      overhead: req.body.overhead
     })
     res.status(200).json([userData, costsData])
   } catch (err) {
@@ -65,7 +67,8 @@ router.post('/newAdmin', async (req, res) => {
         username: driver.username,
         password: driver.password,
         name: driver.name,
-        accountType: 'driver'
+        accountType: 'driver',
+        admin: req.body.username
       })
     })
     const newAdmin = await User.create({
@@ -73,6 +76,14 @@ router.post('/newAdmin', async (req, res) => {
       username: req.body.username,
       password: req.body.password,
       accountType: 'admin'
+    })
+    const newDispatcher = await User.create({
+      email: req.body.dispatcher.email,
+      username: req.body.dispatcher.username,
+      password: req.body.dispatcher.password,
+      company: req.body.dispatcher.company,
+      name: req.body.dispatcher.name,
+      accountType: 'dispatcher'
     })
     const costsData = await Costs.create({
       belongsTo: req.body.username,
@@ -88,9 +99,11 @@ router.post('/newAdmin', async (req, res) => {
       gAndA: req.body.gAndA,
       loan: req.body.loan,
       repairs: req.body.repairs,
-      parking: req.body.parking
+      parking: req.body.parking,
+      tractorNum: req.body.tractorNum,
+      overhead: req.body.overhead
     })
-    res.status(200).json([newAdmin, costsData])
+    res.status(200).json([newAdmin, costsData, newDispatcher])
   } catch (error) {
     console.log(error)
     res.status(500).json(error)
@@ -103,12 +116,15 @@ router.post('/newDispatcher', async (req, res) => {
     const userData = await User.create({
       email: req.body.email,
       username: req.body.username,
-      password: req.body.password,
       accountType: "dispatcher",
-      admin: req.body.admin
+      admin: req.body.admin,
+      name: req.body.name,
+      company: req.body.company,
+      password: req.body.password
     })
     res.status(200).json(userData)
   } catch (err) {
+    console.log(err)
     res.status(400).json(err)
   }
 })
@@ -179,7 +195,7 @@ router.post('/emailLogin', async (req, res) => {
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'wrong password' })
+      res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
     res.status(200).json(user)
@@ -200,7 +216,7 @@ router.post('/usernameLogin', async (req, res) => {
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'wrong password' })
+      res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
     res.status(200).json(user)
