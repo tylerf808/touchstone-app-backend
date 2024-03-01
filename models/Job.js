@@ -131,6 +131,10 @@ const jobSchema = new Schema({
   admin: {
     type: String,
     required: true
+  },
+  totalCost: {
+    type: Number,
+    require: true
   }
 },
   {

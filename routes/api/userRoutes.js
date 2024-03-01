@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt')
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
 
+const jwt = require('jsonwebtoken')
+
 //Check if driver with an email or username already exists during sign up.
 router.post('/check', async (req, res) => {
   try {
@@ -136,10 +138,20 @@ router.get('/getAdmins', async (req, res) => {
   }
 })
 
+//Get all users belonging to an admin
+router.post('/getUsers', async (req, res) => {
+  try {
+    const users = await User.find({admin: req.body.admin})
+    res.status(200).json(users)
+  } catch (error) {
+    req.status(500).json(error)
+  }
+})
+
 //Get drivers belonging to an admin
 router.post('/getDrivers', async (req, res) => {
   try {
-    const drivers = await User.find({ manager: req.body.admin, accountType: 'driver' })
+    const drivers = await User.find({ admin: req.body.admin, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
     res.status(500).json(error)
@@ -149,7 +161,7 @@ router.post('/getDrivers', async (req, res) => {
 //Get dispatcher belonging to an admin
 router.post('/getDispatcher', async (req, res) => {
   try {
-    const dispatchers = await User.find({ manager: req.body.admin, accountType: 'dispatcher' })
+    const dispatchers = await User.find({ admin: req.body.admin, accountType: 'dispatcher' })
     res.status(200).json(dispatchers)
   } catch (error) {
     res.status(500).json(error)

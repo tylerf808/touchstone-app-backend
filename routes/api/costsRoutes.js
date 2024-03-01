@@ -23,23 +23,9 @@ router.post('/check', async (req, res) => {
   res.status(200).json({
     distance: parseFloat(totalDistance.toFixed(2)),
     gasCost: parseFloat(gasMpgCalc.toFixed(2)),
-    laborRate: costs.laborRate,
-    payrollTax: costs.payrollTax,
-    dispatch: costs.dispatch,
-    insurance: costs.insurance,
-    tractorLease: costs.tractorLease,
-    trailerLease: costs.trailerLease,
-    factor: costs.factor,
-    odc: costs.odc,
-    mpg: costs.mpg,
-    gAndA: costs.gAndA,
-    loan: costs.loan,
-    rental: costs.rental,
-    repairs: costs.repairs,
-    depreciation: costs.depreciation,
-    costs_id: costs.costs_id,
+    duration: duration,
     tolls: tolls,
-    duration: duration
+    costs: costs
   })
 })
 
@@ -57,7 +43,7 @@ router.post('/', async (req, res) => {
 
 //////POST Routes
 //Add new costs obj
-router.post('/', async (req, res) => {
+router.post('/newCosts', async (req, res) => {
   await Costs.create(req.body)
     .then((newCosts) => {
       res.json(newCosts)
@@ -68,11 +54,12 @@ router.post('/', async (req, res) => {
 })
 
 //Update costs
-router.put('/', async (req, res) => {
+router.put('/updateCosts', async (req, res) => {
   try {
-    await Costs.findOneAndDelete({belongsTo: req.body.username})
-    const costsData = Costs.create(req.body)
-    res.status(200).json(costsData)
+    const newCosts = await Costs.findOneAndUpdate({belongsTo: req.body.username}, req.body, {
+      returnOriginal: false
+    })
+    res.status(200).json(newCosts)
   } catch (err) {
     res.status(500).json(err)
   }
