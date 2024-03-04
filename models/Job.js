@@ -134,11 +134,7 @@ const jobSchema = new Schema({
   },
   totalCost: {
     type: Number,
-<<<<<<< HEAD
-    require: true
-=======
     required: true
->>>>>>> b4fa65550f0eab71ecbac4391c13ffae596085b2
   }
 },
   {
