@@ -2,7 +2,6 @@ const router = require('express').Router()
 const bcrypt = require('bcrypt')
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
-
 const jwt = require('jsonwebtoken')
 
 //Check if driver with an email or username already exists during sign up.
@@ -189,7 +188,7 @@ router.post('/emailLogin', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email })
     if(!user){
-      res.status(404).json({msg: 'No user found'})
+      res.status(404).json({msg: 'Incorrect email or password'})
       return
     }
     const password = req.body.password
@@ -198,7 +197,8 @@ router.post('/emailLogin', async (req, res) => {
       res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
-    res.status(200).json(user)
+    const token = jwt.sign({username: user.username}, 'secret')
+    res.status(200).json({token})
   } catch (err) {
     console.log(err)
     res.status(500).json(err)
@@ -210,13 +210,13 @@ router.post('/usernameLogin', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username })
     if(!user){
-      res.status(404).json({msg: 'No user found'})
+      res.status(404).json({msg: 'Incorrect username or password'})
       return
     }
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'Incorrect email or password' })
+      res.status(401).json({ msg: 'Incorrect username or password' })
       return
     }
     res.status(200).json(user)

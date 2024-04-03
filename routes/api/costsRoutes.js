@@ -2,6 +2,8 @@ const router = require('express').Router()
 const Costs = require('../../models/Costs')
 const { getDirections, getGasPrice } = require('../../utils/helpers')
 
+const jwt = require('jsonwebtoken')
+
 router.post('/check', async (req, res) => {
   const directionsRes = await getDirections(req.body.start, req.body.pick_up, req.body.drop_off)
   const gasPrice = await getGasPrice(req.body.state1, req.body.state2, req.body.state3)
@@ -33,12 +35,15 @@ router.post('/check', async (req, res) => {
 //Query costs associated with a user
 //TODO: make it check the id of the costs obj and bring back the one associated to who signs in
 router.post('/', async (req, res) => {
-  try {
-    const costsData = await Costs.find({ belongsTo: req.body.username })
+
+    const token = req.headers.authorization
+    if(!token){
+      return res.status(401).json({msg: 'No token'})
+    }
+    const tokenParts = token.split('')
+    const decode = jwt.verify(tokenParts[1], 'secret')
+    const costsData = await Costs.find({ belongsTo: decode.username})
     res.status(200).json(costsData)
-  } catch (error) {
-    res.status(404).json(error)
-  }
 })
 
 //////POST Routes
