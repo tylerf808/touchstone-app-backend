@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt')
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
 const jwt = require('jsonwebtoken')
+const auth = require('../../utils/auth')
 
 //Check if driver with an email or username already exists during sign up.
 router.post('/check', async (req, res) => {
@@ -164,9 +165,9 @@ router.post('/getUsers', async (req, res) => {
 })
 
 //Get drivers belonging to an admin
-router.post('/getDrivers', async (req, res) => {
+router.get('/getDrivers', auth, async (req, res) => {
   try {
-    const drivers = await User.find({ admin: req.body.admin, accountType: 'driver' })
+    const drivers = await User.find({ admin: req.user.username, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
     res.status(500).json(error)
@@ -197,8 +198,8 @@ router.post('/emailLogin', async (req, res) => {
       res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
-    const token = jwt.sign({username: user.username}, 'secret')
-    res.status(200).json({token})
+    const token = jwt.sign({user: user}, 'secret')
+    res.status(200).json(token)
   } catch (err) {
     console.log(err)
     res.status(500).json(err)
