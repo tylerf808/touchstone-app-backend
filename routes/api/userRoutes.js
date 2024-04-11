@@ -111,7 +111,7 @@ router.post('/newAdmin', async (req, res) => {
 })
 
 //Create a dispatcher
-router.post('/newDispatcher', async (req, res) => {
+router.post('/newDispatcher', auth, async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
@@ -130,7 +130,7 @@ router.post('/newDispatcher', async (req, res) => {
 })
 
 //Create a driver
-router.post('/newDriver', async (req, res) => {
+router.post('/newDriver', auth, async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
@@ -145,19 +145,10 @@ router.post('/newDriver', async (req, res) => {
   }
 })
 
-router.get('/getAdmins', async (req, res) => {
-  try {
-    const admins = await User.find({ accountType: 'admin' })
-    res.status(200).json(admins)
-  } catch (error) {
-    res.status(500).json(error)
-  }
-})
-
 //Get all users belonging to an admin
-router.post('/getUsers', async (req, res) => {
+router.post('/getUsers', auth, async (req, res) => {
   try {
-    const users = await User.find({admin: req.body.admin})
+    const users = await User.find({admin: req.user.admin})
     res.status(200).json(users)
   } catch (error) {
     req.status(500).json(error)
@@ -175,9 +166,9 @@ router.get('/getDrivers', auth, async (req, res) => {
 })
 
 //Get dispatcher belonging to an admin
-router.post('/getDispatcher', async (req, res) => {
+router.post('/getDispatcher', auth, async (req, res) => {
   try {
-    const dispatchers = await User.find({ admin: req.body.admin, accountType: 'dispatcher' })
+    const dispatchers = await User.find({ admin: req.user.admin, accountType: 'dispatcher' })
     res.status(200).json(dispatchers)
   } catch (error) {
     res.status(500).json(error)

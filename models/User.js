@@ -20,7 +20,7 @@ const userSchema = new Schema({
     },
     name: {
         type: String,
-        required: false
+        required: true
     },
     admin: {
         type: String,
@@ -55,6 +55,6 @@ userSchema.methods.isCorrectPassword = async function (password) {
     return bcrypt.compare(password, this.password)
 }
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema)
 
-module.exports = User;
+module.exports = User
