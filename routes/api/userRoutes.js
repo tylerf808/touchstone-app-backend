@@ -2,8 +2,8 @@ const router = require('express').Router()
 const bcrypt = require('bcrypt')
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
-
 const jwt = require('jsonwebtoken')
+const auth = require('../../utils/auth')
 
 //Check if driver with an email or username already exists during sign up.
 router.post('/check', async (req, res) => {
@@ -111,7 +111,7 @@ router.post('/newAdmin', async (req, res) => {
 })
 
 //Create a dispatcher
-router.post('/newDispatcher', async (req, res) => {
+router.post('/newDispatcher', auth, async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
@@ -130,7 +130,7 @@ router.post('/newDispatcher', async (req, res) => {
 })
 
 //Create a driver
-router.post('/newDriver', async (req, res) => {
+router.post('/newDriver', auth, async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
@@ -145,19 +145,10 @@ router.post('/newDriver', async (req, res) => {
   }
 })
 
-router.get('/getAdmins', async (req, res) => {
-  try {
-    const admins = await User.find({ accountType: 'admin' })
-    res.status(200).json(admins)
-  } catch (error) {
-    res.status(500).json(error)
-  }
-})
-
 //Get all users belonging to an admin
-router.post('/getUsers', async (req, res) => {
+router.post('/getUsers', auth, async (req, res) => {
   try {
-    const users = await User.find({admin: req.body.admin})
+    const users = await User.find({admin: req.user.admin})
     res.status(200).json(users)
   } catch (error) {
     req.status(500).json(error)
@@ -165,9 +156,9 @@ router.post('/getUsers', async (req, res) => {
 })
 
 //Get drivers belonging to an admin
-router.post('/getDrivers', async (req, res) => {
+router.get('/getDrivers', auth, async (req, res) => {
   try {
-    const drivers = await User.find({ admin: req.body.admin, accountType: 'driver' })
+    const drivers = await User.find({ admin: req.user.username, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
     res.status(500).json(error)
@@ -175,9 +166,9 @@ router.post('/getDrivers', async (req, res) => {
 })
 
 //Get dispatcher belonging to an admin
-router.post('/getDispatcher', async (req, res) => {
+router.post('/getDispatcher', auth, async (req, res) => {
   try {
-    const dispatchers = await User.find({ admin: req.body.admin, accountType: 'dispatcher' })
+    const dispatchers = await User.find({ admin: req.user.admin, accountType: 'dispatcher' })
     res.status(200).json(dispatchers)
   } catch (error) {
     res.status(500).json(error)
@@ -189,7 +180,7 @@ router.post('/emailLogin', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email })
     if(!user){
-      res.status(404).json({msg: 'No user found'})
+      res.status(404).json({msg: 'Incorrect email or password'})
       return
     }
     const password = req.body.password
@@ -198,7 +189,8 @@ router.post('/emailLogin', async (req, res) => {
       res.status(401).json({ msg: 'Incorrect email or password' })
       return
     }
-    res.status(200).json(user)
+    const token = jwt.sign({user: user}, 'secret')
+    res.status(200).json(token)
   } catch (err) {
     console.log(err)
     res.status(500).json(err)
@@ -210,13 +202,13 @@ router.post('/usernameLogin', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.body.username })
     if(!user){
-      res.status(404).json({msg: 'No user found'})
+      res.status(404).json({msg: 'Incorrect username or password'})
       return
     }
     const password = req.body.password
     const correctPw = await user.isCorrectPassword(password)
     if (!correctPw) {
-      res.status(401).json({ msg: 'Incorrect email or password' })
+      res.status(401).json({ msg: 'Incorrect username or password' })
       return
     }
     res.status(200).json(user)
