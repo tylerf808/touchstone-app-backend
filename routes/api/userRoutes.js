@@ -7,9 +7,10 @@ const jwt = require('jsonwebtoken')
 //Get a user from a jwt
 router.get('/getUser', auth, async (req, res) => {
   try {
-    const user = User.findOne({ username: req.user.username })
-    res.status(200).json(user)
+    const user = await User.find({ username: req.user.username })
+    res.status(200).json(user[0])
   } catch (err) {
+    console.log
     res.status(500).json(err)
   }
 })
@@ -187,29 +188,49 @@ router.post('/getDispatcher', auth, async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    
-    let user
-    if (emailRegex.test(email)) {
-      user = User.findOne({ email: req.body.email })
+
+    if (emailRegex.test(req.body.emailOrUsername)) {
+      const user = await User.findOne({ email: req.body.emailOrUsername })
+
+      console.log(user)
+
+      if (!user) {
+        res.status(401).json({ msg: 'No user found' })
+        return
+      }
+
+      const password = req.body.password
+      const correctPw = await user.isCorrectPassword(password)
+
+      if (!correctPw) {
+        res.status(401).json({ msg: 'Incorrect username or password' })
+        return
+      }
+
+      const token = jwt.sign({user: user}, 'secret')
+      res.status(200).json(token)
     } else {
-      user = User.findOne({ username: req.body.username })
+      const user = await User.find({ username: req.body.emailOrUsername })
+
+      if (!user) {
+        res.status(401).json({ msg: 'No user found' })
+        return
+      }
+
+      const password = req.body.password
+      const correctPw = await user.isCorrectPassword(password)
+
+      if (!correctPw) {
+        res.status(401).json({ msg: 'Incorrect username or password' })
+        return
+      }
+
+      const token = jwt.sign({user: user}, 'secret')
+      res.status(200).json(token)
     }
 
-    const password = req.body.password
-    const correctPw = await user.isCorrectPassword(password)
-
-    if (!correctPw) {
-      res.status(401).json({ msg: 'Incorrect username or password' })
-      return
-    }
-    if (!user) {
-      return res.status(401).json({ msg: 'No user found' })
-    }
-
-    const token = jwt.sign(user, 'secret')
-    res.status(200).json(token)
   } catch (error) {
-    res.status(401).json({ msg: 'No user found' })
+    res.status(500).json({ msg: 'Server error' })
   }
 })
 
