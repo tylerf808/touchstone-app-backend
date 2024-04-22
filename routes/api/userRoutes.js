@@ -1,9 +1,18 @@
 const router = require('express').Router()
-const bcrypt = require('bcrypt')
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
-const jwt = require('jsonwebtoken')
 const auth = require('../../utils/auth')
+const jwt = require('jsonwebtoken')
+
+//Get a user from a jwt
+router.get('/getUser', auth, async (req, res) => {
+  try {
+    const user = await User.find({ username: req.user.username })
+    res.status(200).json(user[0])
+  } catch (err) {
+    res.status(500).json(err)
+  }
+})
 
 //Check if driver with an email or username already exists during sign up.
 router.post('/check', async (req, res) => {
@@ -146,9 +155,9 @@ router.post('/newDriver', auth, async (req, res) => {
 })
 
 //Get all users belonging to an admin
-router.post('/getUsers', auth, async (req, res) => {
+router.get('/getUsers', auth, async (req, res) => {
   try {
-    const users = await User.find({admin: req.user.admin})
+    const users = await User.find({ admin: req.user.username })
     res.status(200).json(users)
   } catch (error) {
     req.status(500).json(error)
@@ -161,6 +170,7 @@ router.get('/getDrivers', auth, async (req, res) => {
     const drivers = await User.find({ admin: req.user.username, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
+    console.log
     res.status(500).json(error)
   }
 })
@@ -175,46 +185,52 @@ router.post('/getDispatcher', auth, async (req, res) => {
   }
 })
 
-//Login with email
-router.post('/emailLogin', async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email })
-    if(!user){
-      res.status(404).json({msg: 'Incorrect email or password'})
-      return
-    }
-    const password = req.body.password
-    const correctPw = await user.isCorrectPassword(password)
-    if (!correctPw) {
-      res.status(401).json({ msg: 'Incorrect email or password' })
-      return
-    }
-    const token = jwt.sign({user: user}, 'secret')
-    res.status(200).json(token)
-  } catch (err) {
-    console.log(err)
-    res.status(500).json(err)
-  }
-})
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-//Login with username
-router.post('/usernameLogin', async (req, res) => {
-  try {
-    const user = await User.findOne({ username: req.body.username })
-    if(!user){
-      res.status(404).json({msg: 'Incorrect username or password'})
-      return
+    if (emailRegex.test(req.body.emailOrUsername)) {
+      const user = await User.findOne({ email: req.body.emailOrUsername })
+
+      console.log(user)
+
+      if (!user) {
+        res.status(401).json({ msg: 'No user found' })
+        return
+      }
+
+      const password = req.body.password
+      const correctPw = await user.isCorrectPassword(password)
+
+      if (!correctPw) {
+        res.status(401).json({ msg: 'Incorrect username or password' })
+        return
+      }
+
+      const token = jwt.sign({user: user}, 'secret')
+      res.status(200).json(token)
+    } else {
+      const user = await User.findOne({ username: req.body.emailOrUsername })
+
+      if (!user) {
+        res.status(401).json({ msg: 'No user found' })
+        return
+      }
+
+      const password = req.body.password
+      const correctPw = await user.isCorrectPassword(password)
+
+      if (!correctPw) {
+        res.status(401).json({ msg: 'Incorrect username or password' })
+        return
+      }
+
+      const token = jwt.sign({user: user}, 'secret')
+      res.status(200).json(token)
     }
-    const password = req.body.password
-    const correctPw = await user.isCorrectPassword(password)
-    if (!correctPw) {
-      res.status(401).json({ msg: 'Incorrect username or password' })
-      return
-    }
-    res.status(200).json(user)
-  } catch (err) {
-    console.log(err)
-    res.status(500).json(err)
+
+  } catch (error) {
+    res.status(500).json({ msg: 'Server error' })
   }
 })
 
