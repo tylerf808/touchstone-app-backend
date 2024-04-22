@@ -10,7 +10,6 @@ router.get('/getUser', auth, async (req, res) => {
     const user = await User.find({ username: req.user.username })
     res.status(200).json(user[0])
   } catch (err) {
-    console.log
     res.status(500).json(err)
   }
 })
@@ -156,9 +155,9 @@ router.post('/newDriver', auth, async (req, res) => {
 })
 
 //Get all users belonging to an admin
-router.post('/getUsers', auth, async (req, res) => {
+router.get('/getUsers', auth, async (req, res) => {
   try {
-    const users = await User.find({ admin: req.user.admin })
+    const users = await User.find({ admin: req.user.username })
     res.status(200).json(users)
   } catch (error) {
     req.status(500).json(error)
@@ -171,6 +170,7 @@ router.get('/getDrivers', auth, async (req, res) => {
     const drivers = await User.find({ admin: req.user.username, accountType: 'driver' })
     res.status(200).json(drivers)
   } catch (error) {
+    console.log
     res.status(500).json(error)
   }
 })
@@ -210,7 +210,7 @@ router.post('/login', async (req, res) => {
       const token = jwt.sign({user: user}, 'secret')
       res.status(200).json(token)
     } else {
-      const user = await User.find({ username: req.body.emailOrUsername })
+      const user = await User.findOne({ username: req.body.emailOrUsername })
 
       if (!user) {
         res.status(401).json({ msg: 'No user found' })

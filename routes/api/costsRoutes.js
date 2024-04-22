@@ -15,7 +15,7 @@ router.post('/check', auth, async (req, res) => {
   }
   const totalDistance = (directionsRes.routes[0].distanceMeters) / 1609.34
 
-  const costs = await Costs.findOne({ belongsTo: req.body.username })
+  const costs = await Costs.findOne({ belongsTo: req.user.username })
 
   if (costs === null) {
     res.status(404).json({ message: 'User has no costs' })

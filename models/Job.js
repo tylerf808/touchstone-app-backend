@@ -11,9 +11,9 @@ const jobSchema = new Schema({
 
     // Financial details
     revenue: { type: Number, required: true },
-    grossProfitPercentage: { type: Number, required: true },
-    operatingProfitPercentage: { type: Number, required: true },
-    netProfitPercentage: { type: Number, required: true },
+    grossProfitPercentage: { type: String, required: true },
+    operatingProfitPercentage: { type: String, required: true },
+    netProfitPercentage: { type: String, required: true },
     totalCost: { type: Number, required: true },
     gasCost: { type: Number, required: true },
     ratePerMile: { type: Number, required: true },
@@ -26,7 +26,7 @@ const jobSchema = new Schema({
     dispatch: { type: Number, required: true },
     payrollTax: { type: Number, required: true },
     netProfit: { type: Number, required: true },
-    laborRatePercent: { type: Number, required: true },
+    laborRatePercent: { type: String, required: true },
     insurance: { type: Number, required: true },
     trailer: { type: Number, required: true },
     tractor: { type: Number, required: true },
