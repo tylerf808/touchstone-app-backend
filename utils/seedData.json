@@ -1,0 +1,23 @@
+[
+    {
+        "username": "test",
+        "name": "test",
+        "email": "test@gmail.com",
+        "password": "password",
+        "accountType": "admin"
+    },
+    {
+        "username": "dispatcher",
+        "name": "Dispatcer",
+        "email": "dispatcher@gmail.com",
+        "password": "password",
+        "accountType": "dispatcher"
+    },
+    {
+        "username": "driverOne",
+        "name": "Driver One",
+        "email": "driverone@gmail.com",
+        "password": "password",
+        "accountType": "driver"
+    }
+]

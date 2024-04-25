@@ -7,7 +7,7 @@ const jobSchema = new Schema({
     start: { type: String, required: true },
     pickUp: { type: String, required: true },
     dropOff: { type: String, required: true },
-    date: { type: Date },
+    date: { type: String },
 
     // Financial details
     revenue: { type: Number, required: true },

@@ -160,7 +160,41 @@ router.get('/getUsers', auth, async (req, res) => {
     const users = await User.find({ admin: req.user.username })
     res.status(200).json(users)
   } catch (error) {
-    req.status(500).json(error)
+    res.status(500).json(error)
+  }
+})
+
+//Update users
+router.post('/setUsers', auth, async (req, res) => {
+  try {
+    await User.deleteMany({accountType: 'driver', admin: req.user.username})
+    const reqUsers = req.body
+    reqUsers.forEach((user) => {
+      user = {...user, admin: req.user.username}
+    })
+    const newUsers = await User.insertMany(reqUsers)
+    res.status(200).json(newUsers)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json(error)
+  }
+})
+
+//New User
+router.post('/newUser', async (req, res) => {
+  try {
+    const user = req.body.user
+    const newUser = await User.create({
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      password: user.password,
+      accountType: user.accountType
+    })
+    res.status(200).json(newUser)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json(error)
   }
 })
 
@@ -207,7 +241,7 @@ router.post('/login', async (req, res) => {
         return
       }
 
-      const token = jwt.sign({user: user}, 'secret')
+      const token = jwt.sign({ user: user }, 'secret')
       res.status(200).json(token)
     } else {
       const user = await User.findOne({ username: req.body.emailOrUsername })
@@ -225,7 +259,7 @@ router.post('/login', async (req, res) => {
         return
       }
 
-      const token = jwt.sign({user: user}, 'secret')
+      const token = jwt.sign({ user: user }, 'secret')
       res.status(200).json(token)
     }
 
