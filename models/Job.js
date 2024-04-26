@@ -42,7 +42,8 @@ const jobSchema = new Schema({
 
     // References to other entities
     driver: { type: String, required: true },
-    admin: { type: String, required: true }
+    admin: { type: String, required: true },
+    tractor: { type: Number, required: true }
 }, {
     timestamps: true,
     versionKey: false

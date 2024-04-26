@@ -126,7 +126,7 @@ router.post('/newDispatcher', auth, async (req, res) => {
       email: req.body.email,
       username: req.body.username,
       accountType: "dispatcher",
-      admin: req.body.admin,
+      admin: req.user.username,
       name: req.body.name,
       company: req.body.company,
       password: req.body.password
@@ -146,7 +146,8 @@ router.post('/newDriver', auth, async (req, res) => {
       username: req.body.username,
       password: req.body.password,
       accountType: "driver",
-      admin: req.body.admin
+      admin: req.user.username,
+      name: req.body.name
     })
     res.status(200).json(userData)
   } catch (err) {
