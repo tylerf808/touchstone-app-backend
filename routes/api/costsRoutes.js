@@ -21,7 +21,7 @@ router.post('/check', auth, async (req, res) => {
     res.status(404).json({ message: 'User has no costs' })
     return
   }
-  const gasMpgCalc = (totalDistance / costs.mpg) * gasPrice
+  const gasMpgCalc = (totalDistance / req.body.mpg) * gasPrice
 
   res.status(200).json({
     distance: parseFloat(totalDistance.toFixed(2)),
