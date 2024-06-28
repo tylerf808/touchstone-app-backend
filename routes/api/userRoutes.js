@@ -81,6 +81,7 @@ router.post('/newAdmin', async (req, res) => {
       })
     })
     const newAdmin = await User.create({
+      name: req.body.name,
       email: req.body.email,
       username: req.body.username,
       password: req.body.password,
@@ -92,6 +93,7 @@ router.post('/newAdmin', async (req, res) => {
       password: req.body.dispatcher.password,
       company: req.body.dispatcher.company,
       name: req.body.dispatcher.name,
+      admin: req.body.username,
       accountType: 'dispatcher'
     })
     const costsData = await Costs.create({
@@ -120,13 +122,13 @@ router.post('/newAdmin', async (req, res) => {
 })
 
 //Create a dispatcher
-router.post('/newDispatcher', auth, async (req, res) => {
+router.post('/newDispatcher', async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
       username: req.body.username,
       accountType: "dispatcher",
-      admin: req.user.username,
+      admin: req.body.admin,
       name: req.body.name,
       company: req.body.company,
       password: req.body.password
