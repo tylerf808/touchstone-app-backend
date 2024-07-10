@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
+const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const jwt = require('jsonwebtoken')
 
@@ -70,6 +71,7 @@ router.post('/newOwner', async (req, res) => {
 router.post('/newAdmin', async (req, res) => {
   try {
     const drivers = req.body.drivers
+    const tractors = req.body.tractors
     drivers.forEach((driver) => {
       User.create({
         email: driver.email,
@@ -78,6 +80,15 @@ router.post('/newAdmin', async (req, res) => {
         name: driver.name,
         accountType: 'driver',
         admin: req.body.username
+      })
+    })
+    tractors.forEach((tractor) => {
+      Tractor.create({
+        belongsTo: req.body.username,
+        mpg: tractor.mpg,
+        insurance: tractor.insurance,
+        vin: tractor.vin,
+        internalNum: tractor.internalNum,
       })
     })
     const newAdmin = await User.create({
@@ -114,7 +125,8 @@ router.post('/newAdmin', async (req, res) => {
       tractorNum: req.body.tractorNum,
       overhead: req.body.overhead
     })
-    res.status(200).json([newAdmin, costsData, newDispatcher])
+    const token = jwt.sign({ user: newAdmin }, 'secret')
+    res.status(200).json(token)
   } catch (error) {
     console.log(error)
     res.status(500).json(error)
