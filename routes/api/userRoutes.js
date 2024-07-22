@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken')
 //Get a user from a jwt
 router.get('/getUser', auth, async (req, res) => {
   try {
-    const user = await User.find({ username: req.user.username })
+    const user = await User.find({ username: req.user.username, email: req.user.email })
     res.status(200).json(user[0])
   } catch (err) {
     res.status(500).json(err)
@@ -241,8 +241,6 @@ router.post('/login', async (req, res) => {
     if (emailRegex.test(req.body.emailOrUsername)) {
       const user = await User.findOne({ email: req.body.emailOrUsername })
 
-      console.log(user)
-
       if (!user) {
         res.status(401).json({ msg: 'No user found' })
         return
@@ -257,7 +255,7 @@ router.post('/login', async (req, res) => {
       }
 
       const token = jwt.sign({ user: user }, 'secret')
-      res.status(200).json(token)
+      res.status(200).json({token, user})
     } else {
       const user = await User.findOne({ username: req.body.emailOrUsername })
 
@@ -275,7 +273,7 @@ router.post('/login', async (req, res) => {
       }
 
       const token = jwt.sign({ user: user }, 'secret')
-      res.status(200).json(token)
+      res.status(200).json({token, user})
     }
 
   } catch (error) {
