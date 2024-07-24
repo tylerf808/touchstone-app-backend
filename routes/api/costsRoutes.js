@@ -1,5 +1,6 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
+const Tractor = require('../../models/Tractor')
 const { getDirections, getGasPrice } = require('../../utils/helpers')
 const auth = require('../../utils/auth')
 
@@ -38,6 +39,13 @@ router.post('/check', auth, async (req, res) => {
 router.post('/', auth, async (req, res) => {
     const costsData = await Costs.find({ belongsTo: req.user.username})
     res.status(200).json(costsData)
+})
+
+//Query costs and tractors associated with a user
+router.post('/coststractors', auth, async (req, res) => {
+  const costsData = await Costs.find({ belongsTo: req.user.username})
+  const tractorData = await Tractor.find({belongsTo: req.user.username})
+  res.status(200).json({costs: costsData, tractors: tractorData})
 })
 
 //////POST Routes
