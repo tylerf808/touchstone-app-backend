@@ -169,6 +169,53 @@ router.post('/newDriver', auth, async (req, res) => {
   }
 })
 
+//Get all users and tractors belonging to an admin
+router.get('/tractorsAndUsers', auth, async (req, res) => {
+  try {
+    const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
+    const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
+    const tractors = await Tractor.find({ belongsTo: req.user.username })
+    const categories = {
+      drivers: drivers,
+      tractors: tractors,
+      dispatchers: dispatchers
+    }
+    res.status(200).json(categories)
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+router.post('/updateTractorsAndUsers', auth, async (req, res) => {
+  try {
+    if (req.body.accountType === 'tractor') {
+      await Tractor.findOneAndReplace({ internalNum: req.body.updatedItem.internalNum }, req.body.updatedItem)
+      const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
+      const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
+      const tractors = await Tractor.find({ belongsTo: req.user.username })
+      const categories = {
+        drivers: drivers,
+        tractors: tractors,
+        dispatchers: dispatchers
+      }
+      res.status(200).json(categories)
+    } else {
+      await User.findOneAndReplace({ username: req.body.updatedItem.username }, req.body.updatedItem)
+      const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
+      const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
+      const tractors = await Tractor.find({ belongsTo: req.user.username })
+      const categories = {
+        drivers: drivers,
+        tractors: tractors,
+        dispatchers: dispatchers
+      }
+      res.status(200).json(categories)
+    }
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
 //Get all users belonging to an admin
 router.get('/getUsers', auth, async (req, res) => {
   try {
@@ -182,10 +229,10 @@ router.get('/getUsers', auth, async (req, res) => {
 //Update users
 router.post('/setUsers', auth, async (req, res) => {
   try {
-    await User.deleteMany({accountType: 'driver', admin: req.user.username})
+    await User.deleteMany({ accountType: 'driver', admin: req.user.username })
     const reqUsers = req.body
     reqUsers.forEach((user) => {
-      user = {...user, admin: req.user.username}
+      user = { ...user, admin: req.user.username }
     })
     const newUsers = await User.insertMany(reqUsers)
     res.status(200).json(newUsers)
@@ -255,7 +302,7 @@ router.post('/login', async (req, res) => {
       }
 
       const token = jwt.sign({ user: user }, 'secret')
-      res.status(200).json({token, user})
+      res.status(200).json({ token, user })
     } else {
       const user = await User.findOne({ username: req.body.emailOrUsername })
 
@@ -273,7 +320,7 @@ router.post('/login', async (req, res) => {
       }
 
       const token = jwt.sign({ user: user }, 'secret')
-      res.status(200).json({token, user})
+      res.status(200).json({ token, user })
     }
 
   } catch (error) {
