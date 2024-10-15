@@ -24,6 +24,10 @@ const tractorSchema = new Schema({
         type: Number,
         require: true
     },
+    accountType: {
+        type: String,
+        require: true
+    },
     currentDriver: {
         type: Schema.Types.ObjectId,
         ref: 'User'

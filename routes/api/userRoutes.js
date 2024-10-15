@@ -189,7 +189,7 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
 router.post('/updateTractorsAndUsers', auth, async (req, res) => {
   try {
     if (req.body.accountType === 'tractor') {
-      await Tractor.findOneAndReplace({ internalNum: req.body.updatedItem.internalNum }, req.body.updatedItem)
+      await Tractor.findOneAndReplace({ _id: req.body.updatedItem._id }, req.body.updatedItem)
       const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
       const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
       const tractors = await Tractor.find({ belongsTo: req.user.username })
@@ -200,7 +200,7 @@ router.post('/updateTractorsAndUsers', auth, async (req, res) => {
       }
       res.status(200).json(categories)
     } else {
-      await User.findOneAndReplace({ username: req.body.updatedItem.username }, req.body.updatedItem)
+      await User.findOneAndReplace({ _id: req.body.updatedItem._id }, req.body.updatedItem)
       const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
       const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
       const tractors = await Tractor.find({ belongsTo: req.user.username })
@@ -210,6 +210,21 @@ router.post('/updateTractorsAndUsers', auth, async (req, res) => {
         dispatchers: dispatchers
       }
       res.status(200).json(categories)
+    }
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+//New Tractor or User
+router.post('/newTractorOrUser', auth, async (req, res) => {
+  try {
+    if(req.body.accountType === 'tractor'){
+      await Tractor.create({...req.body.newItem, belongsTo: req.user.username})
+      res.status(200)
+    } else {
+      await User.create({...req.body.newItem, admin: req.user.username})
+      res.status(200)
     }
   } catch (error) {
     res.status(500).json(error)
