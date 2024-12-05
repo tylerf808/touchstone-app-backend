@@ -4,6 +4,7 @@ const User = require('../../models/User')
 const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const jwt = require('jsonwebtoken')
+const { sendConfirmationEmail } = require('../../utils/sendConfirmationEmail')
 
 //Get a user from a jwt
 router.get('/getUser', auth, async (req, res) => {
@@ -70,63 +71,65 @@ router.post('/newOwner', async (req, res) => {
 //Create an admin
 router.post('/newAdmin', async (req, res) => {
   try {
-    const drivers = req.body.drivers
-    const tractors = req.body.tractors
-    drivers.forEach((driver) => {
-      User.create({
-        email: driver.email,
-        username: driver.username,
-        password: driver.password,
-        name: driver.name,
-        accountType: 'driver',
-        admin: req.body.username
-      })
-    })
-    tractors.forEach((tractor) => {
-      Tractor.create({
-        belongsTo: req.body.username,
-        mpg: tractor.mpg,
-        insurance: tractor.insurance,
-        vin: tractor.vin,
-        internalNum: tractor.internalNum,
-      })
-    })
-    const newAdmin = await User.create({
-      name: req.body.name,
-      email: req.body.email,
-      username: req.body.username,
-      password: req.body.password,
-      accountType: 'admin'
-    })
-    const newDispatcher = await User.create({
-      email: req.body.dispatcher.email,
-      username: req.body.dispatcher.username,
-      password: req.body.dispatcher.password,
-      company: req.body.dispatcher.company,
-      name: req.body.dispatcher.name,
-      admin: req.body.username,
-      accountType: 'dispatcher'
-    })
-    const costsData = await Costs.create({
-      belongsTo: req.body.username,
-      insurance: req.body.insurance,
-      tractorLease: req.body.tractorLease,
-      trailerLease: req.body.trailerLease,
-      dispatch: req.body.dispatch,
-      mpg: req.body.mpg,
-      laborRate: req.body.laborRate,
-      payrollTax: req.body.payrollTax,
-      factor: req.body.factor,
-      odc: req.body.odc,
-      gAndA: req.body.gAndA,
-      loan: req.body.loan,
-      repairs: req.body.repairs,
-      parking: req.body.parking,
-      tractorNum: req.body.tractorNum,
-      overhead: req.body.overhead
-    })
-    const token = jwt.sign({ user: newAdmin }, 'secret')
-    res.status(200).json(token)
+    // const drivers = req.body.drivers
+    // const tractors = req.body.tractors
+    // drivers.forEach((driver) => {
+    //   User.create({
+    //     email: driver.email,
+    //     username: driver.username,
+    //     password: driver.password,
+    //     name: driver.name,
+    //     accountType: 'driver',
+    //     admin: req.body.username
+    //   })
+    // })
+    // tractors.forEach((tractor) => {
+    //   Tractor.create({
+    //     belongsTo: req.body.username,
+    //     mpg: tractor.mpg,
+    //     insurance: tractor.insurance,
+    //     vin: tractor.vin,
+    //     internalNum: tractor.internalNum,
+    //   })
+    // })
+    // const newAdmin = await User.create({
+    //   name: req.body.name,
+    //   email: req.body.email,
+    //   username: req.body.username,
+    //   password: req.body.password,
+    //   accountType: 'admin'
+    // })
+    // await User.create({
+    //   email: req.body.dispatcher.email,
+    //   username: req.body.dispatcher.username,
+    //   password: req.body.dispatcher.password,
+    //   company: req.body.dispatcher.company,
+    //   name: req.body.dispatcher.name,
+    //   admin: req.body.username,
+    //   accountType: 'dispatcher'
+    // })
+    // await Costs.create({
+    //   belongsTo: req.body.username,
+    //   insurance: req.body.insurance,
+    //   tractorLease: req.body.tractorLease,
+    //   trailerLease: req.body.trailerLease,
+    //   dispatch: req.body.dispatch,
+    //   mpg: req.body.mpg,
+    //   laborRate: req.body.laborRate,
+    //   payrollTax: req.body.payrollTax,
+    //   factor: req.body.factor,
+    //   odc: req.body.odc,
+    //   gAndA: req.body.gAndA,
+    //   loan: req.body.loan,
+    //   repairs: req.body.repairs,
+    //   parking: req.body.parking,
+    //   tractorNum: req.body.tractorNum,
+    //   overhead: req.body.overhead
+    // })
+    const confirmationToken = Math.random().toString(36).substring(2, 15);
+    // const token = jwt.sign({ user: newAdmin }, 'secret')
+    const confEmail = await sendConfirmationEmail(req.body.email, confirmationToken)
+    res.status(200).json(token, confEmail)
   } catch (error) {
     console.log(error)
     res.status(500).json(error)
@@ -175,12 +178,8 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
     const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
     const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
     const tractors = await Tractor.find({ belongsTo: req.user.username })
-    const categories = {
-      drivers: drivers,
-      tractors: tractors,
-      dispatchers: dispatchers
-    }
-    res.status(200).json(categories)
+    const tractorsAndUsers = [drivers, tractors, dispatchers]
+    res.status(200).json(tractorsAndUsers)
   } catch (error) {
     res.status(500).json(error)
   }
