@@ -24,8 +24,16 @@ const tractorSchema = new Schema({
         type: Number,
         require: true
     },
-    accountType: {
+    height: {
         type: String,
+        require: true
+    },
+    width: {
+        type: String,
+        require: true
+    },
+    weight: {
+        type: Number,
         require: true
     },
     currentDriver: {

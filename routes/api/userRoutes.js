@@ -172,6 +172,24 @@ router.post('/newDriver', auth, async (req, res) => {
   }
 })
 
+router.post('/editUser', auth, async (req, res) => {
+  try {
+    const user = req.body.user
+    const editedUser = await User.findOneAndUpdate({ _id: user._id },
+      {
+        email: user.email,
+        name: user.name,
+        username: user.username
+      },
+    {
+      new: true
+    })
+    res.status(200).json(editedUser)
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
 //Get all users and tractors belonging to an admin
 router.get('/tractorsAndUsers', auth, async (req, res) => {
   try {
@@ -218,11 +236,11 @@ router.post('/updateTractorsAndUsers', auth, async (req, res) => {
 //New Tractor or User
 router.post('/newTractorOrUser', auth, async (req, res) => {
   try {
-    if(req.body.accountType === 'tractor'){
-      await Tractor.create({...req.body.newItem, belongsTo: req.user.username})
+    if (req.body.accountType === 'tractor') {
+      await Tractor.create({ ...req.body.newItem, belongsTo: req.user.username })
       res.status(200)
     } else {
-      await User.create({...req.body.newItem, admin: req.user.username})
+      await User.create({ ...req.body.newItem, admin: req.user.username })
       res.status(200)
     }
   } catch (error) {
