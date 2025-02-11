@@ -53,10 +53,10 @@ router.post('/check', auth, async (req, res) => {
     const costs = await Costs.findOne({ belongsTo: req.user.username })
     const tractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: req.body.tractor })
 
-    // if (costs === null) {
-    //   res.status(404).json({ message: 'User has no costs' })
-    //   return
-    // }
+    if (tractor === null) {
+      res.status(404).json({ message: 'No tractor' })
+      return
+    }
     const totalDistance = parseFloat(routeResponse[0].ReportLines[2].TMiles)
 
     const gasMpgCalc = ((parseFloat(routeResponse[0].ReportLines[2].TMiles)) / tractor.mpg) * 3.66
