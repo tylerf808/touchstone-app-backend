@@ -123,7 +123,7 @@ router.post('/check', auth, async (req, res) => {
       tractor: tractor.internalNum
     }
 
-    res.status(200).json(newJob)
+    res.status(200).json([newJob, routeResponse])
 
   } catch (error) {
     console.log(error)
