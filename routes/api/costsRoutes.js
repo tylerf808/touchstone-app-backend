@@ -41,6 +41,9 @@ router.post('/check', auth, async (req, res) => {
       }
     }).then((response) => { return response.data })
 
+    
+
+
     // Get rest stops along the route using Places API
 
     // const restStops = await findRestStops(route.overview_path);
@@ -73,7 +76,7 @@ router.post('/check', auth, async (req, res) => {
 
     let profitable
 
-    if(revenue - totalCost > 0){
+    if (revenue - totalCost > 0) {
       profitable = true
     } else {
       profitable = false
@@ -124,7 +127,7 @@ router.post('/check', auth, async (req, res) => {
 
   } catch (error) {
     console.log(error)
-    res.status(500).json({error: error})
+    res.status(500).json({ error: error })
   }
 })
 
