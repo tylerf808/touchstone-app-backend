@@ -112,7 +112,7 @@ router.post('/check', auth, async (req, res) => {
       laborRatePercent: costs.laborRate * 100,
       trailerLease: costs.trailerLease,
       tractorLease: costs.tractorLease,
-      totalFixedCosts: ((tractor.insurance / 30) + costs.tractorLease + costs.trailerLease
+      totalFixedCost: ((tractor.insurance / 30) + costs.tractorLease + costs.trailerLease
         + (costs.gAndA * revenue) + costs.parking).toFixed(2),
       tolls: tolls,
       client: req.body.client,
@@ -123,7 +123,7 @@ router.post('/check', auth, async (req, res) => {
       tractor: tractor.internalNum
     }
 
-    res.status(200).json(newJob)
+    res.status(200).json([newJob, routeResponse])
 
   } catch (error) {
     console.log(error)

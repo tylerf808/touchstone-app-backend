@@ -71,67 +71,66 @@ router.post('/newOwner', async (req, res) => {
 //Create an admin
 router.post('/newAdmin', async (req, res) => {
   try {
-    // const drivers = req.body.drivers
-    // const tractors = req.body.tractors
-    // drivers.forEach((driver) => {
-    //   User.create({
-    //     email: driver.email,
-    //     username: driver.username,
-    //     password: driver.password,
-    //     name: driver.name,
-    //     accountType: 'driver',
-    //     admin: req.body.username
-    //   })
-    // })
-    // tractors.forEach((tractor) => {
-    //   Tractor.create({
-    //     belongsTo: req.body.username,
-    //     mpg: tractor.mpg,
-    //     insurance: tractor.insurance,
-    //     vin: tractor.vin,
-    //     internalNum: tractor.internalNum,
-    //   })
-    // })
-    // const newAdmin = await User.create({
-    //   name: req.body.name,
-    //   email: req.body.email,
-    //   username: req.body.username,
-    //   password: req.body.password,
-    //   accountType: 'admin'
-    // })
-    // await User.create({
-    //   email: req.body.dispatcher.email,
-    //   username: req.body.dispatcher.username,
-    //   password: req.body.dispatcher.password,
-    //   company: req.body.dispatcher.company,
-    //   name: req.body.dispatcher.name,
-    //   admin: req.body.username,
-    //   accountType: 'dispatcher'
-    // })
-    // await Costs.create({
-    //   belongsTo: req.body.username,
-    //   insurance: req.body.insurance,
-    //   tractorLease: req.body.tractorLease,
-    //   trailerLease: req.body.trailerLease,
-    //   dispatch: req.body.dispatch,
-    //   mpg: req.body.mpg,
-    //   laborRate: req.body.laborRate,
-    //   payrollTax: req.body.payrollTax,
-    //   factor: req.body.factor,
-    //   odc: req.body.odc,
-    //   gAndA: req.body.gAndA,
-    //   loan: req.body.loan,
-    //   repairs: req.body.repairs,
-    //   parking: req.body.parking,
-    //   tractorNum: req.body.tractorNum,
-    //   overhead: req.body.overhead
-    // })
+    const drivers = req.body.drivers
+    const tractors = req.body.tractors
+    drivers.forEach((driver) => {
+      User.create({
+        email: driver.email,
+        username: driver.username,
+        password: driver.password,
+        name: driver.name,
+        accountType: 'driver',
+        admin: req.body.username
+      })
+    })
+    tractors.forEach((tractor) => {
+      Tractor.create({
+        belongsTo: req.body.username,
+        mpg: tractor.mpg,
+        insurance: tractor.insurance,
+        vin: tractor.vin,
+        internalNum: tractor.internalNum,
+      })
+    })
+    const newAdmin = await User.create({
+      name: req.body.name,
+      email: req.body.email,
+      username: req.body.username,
+      password: req.body.password,
+      accountType: 'admin'
+    })
+    await User.create({
+      email: req.body.dispatcher.email,
+      username: req.body.dispatcher.username,
+      password: req.body.dispatcher.password,
+      company: req.body.dispatcher.company,
+      name: req.body.dispatcher.name,
+      admin: req.body.username,
+      accountType: 'dispatcher'
+    })
+    await Costs.create({
+      belongsTo: req.body.username,
+      insurance: req.body.insurance,
+      tractorLease: req.body.tractorLease,
+      trailerLease: req.body.trailerLease,
+      dispatch: req.body.dispatch,
+      mpg: req.body.mpg,
+      laborRate: req.body.laborRate,
+      payrollTax: req.body.payrollTax,
+      factor: req.body.factor,
+      odc: req.body.odc,
+      gAndA: req.body.gAndA,
+      loan: req.body.loan,
+      repairs: req.body.repairs,
+      parking: req.body.parking,
+      tractorNum: req.body.tractorNum,
+      overhead: req.body.overhead
+    })
     const confirmationToken = Math.random().toString(36).substring(2, 15);
-    // const token = jwt.sign({ user: newAdmin }, 'secret')
+    const token = jwt.sign({ user: newAdmin }, 'secret')
     const confEmail = await sendConfirmationEmail(req.body.email, confirmationToken)
     res.status(200).json(token, confEmail)
   } catch (error) {
-    console.log(error)
     res.status(500).json(error)
   }
 })
