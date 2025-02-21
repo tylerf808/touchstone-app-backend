@@ -126,9 +126,8 @@ router.post('/newAdmin', async (req, res) => {
       tractorNum: req.body.tractorNum,
       overhead: req.body.overhead
     })
-    const confirmationToken = Math.random().toString(36).substring(2, 15);
-    const token = jwt.sign({ user: newAdmin }, 'secret')
-    const confEmail = await sendConfirmationEmail(req.body.email, confirmationToken)
+    const token = jwt.sign({ user: newAdmin }, process.env.JWT_SECRET_KEY)
+    const confEmail = await sendConfirmationEmail(req.body.email)
     res.status(200).json(token, confEmail)
   } catch (error) {
     res.status(500).json(error)
