@@ -236,11 +236,12 @@ router.post('/newTractorOrUser', auth, async (req, res) => {
   try {
     if (req.body.accountType === 'tractor') {
       await Tractor.create({ ...req.body.newItem, belongsTo: req.user.username })
-      res.status(200)
+      
     } else {
       await User.create({ ...req.body.newItem, admin: req.user.username })
-      res.status(200)
+
     }
+    res.status(200)
   } catch (error) {
     res.status(500).json(error)
   }
