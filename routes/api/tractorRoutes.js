@@ -13,9 +13,18 @@ router.get('/getTractors', auth, async (req, res) => {
 })
 
 //Add a tractor
-router.post('/createTractor', auth, async (req, res) => {
+router.post('/newTractor', auth, async (req, res) => {
     try {
-        await Tractor.create(req.body)
+        await Tractor.create({
+            internalNum: req.body.internalNum,
+            vin: req.body.vin,
+            insurance: req.body.insurance,
+            mpg: req.body.mpg,
+            height: req.body.height,
+            width: req.body.width,
+            weight: req.body.weight,
+            belongsTo: req.user.username
+        })
         res.status(200).json({ msg: 'Tractor added' })
     } catch (error) {
         res.status(500).json(error)
@@ -35,16 +44,15 @@ router.post('/deleteTractor', auth, async (req, res) => {
 //Edit a tractor
 router.post('/editTractor', auth, async (req, res) => {
     try {
-        const tractor = req.body.tractor
         const updatedTractor = await Tractor.findOneAndUpdate({ internalNum: req.body.internalNum, belongsTo: req.user.username },
             {
-                mpg: tractor.mpg,
-                insurance: tractor.insurance,
-                vin: tractor.vin,
-                internalNum: tractor.internalNum,
-                height: tractor.height,
-                width: tractor.width,
-                weight: tractor.weight
+                mpg: req.body.mpg,
+                insurance: req.body.insurance,
+                vin: req.body.vin,
+                internalNum: req.body.internalNum,
+                height: req.body.height,
+                width: req.body.width,
+                weight: req.body.weight
             },
             {
                 new: true
