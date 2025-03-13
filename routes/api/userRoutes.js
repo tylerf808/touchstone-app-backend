@@ -170,19 +170,30 @@ router.post('/newDriver', auth, async (req, res) => {
   }
 })
 
+//Edit user
 router.post('/editUser', auth, async (req, res) => {
   try {
-    const user = req.body.user
-    const editedUser = await User.findOneAndUpdate({ _id: user._id },
+    const editedUser = await User.findOneAndUpdate({ _id: req.body._id },
       {
-        email: user.email,
-        name: user.name,
-        username: user.username
+        email: req.body.email,
+        name: req.body.name,
+        username: req.body.username
       },
-    {
-      new: true
-    })
+      {
+        new: true
+      })
     res.status(200).json(editedUser)
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+//Delete user
+router.post('/deleteUser', auth, async (req, res) => {
+  try {
+    const user = req.body.user
+    await User.findByIdAndDelete({ _id: user._id })
+    res.status(200).json({ msg: 'User deleted' })
   } catch (error) {
     res.status(500).json(error)
   }
@@ -236,7 +247,7 @@ router.post('/newTractorOrUser', auth, async (req, res) => {
   try {
     if (req.body.accountType === 'tractor') {
       await Tractor.create({ ...req.body.newItem, belongsTo: req.user.username })
-      
+
     } else {
       await User.create({ ...req.body.newItem, admin: req.user.username })
 
