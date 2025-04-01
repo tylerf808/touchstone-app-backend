@@ -6,7 +6,6 @@ const Schema = mongoose.Schema
 const userSchema = new Schema({
     username: {
         type: String,
-        required: true,
         unique: true,
     },
     email: {
@@ -23,7 +22,8 @@ const userSchema = new Schema({
         required: true
     },
     admin: {
-        type: String
+        type: String,
+        required: true
     },
     accountType: {
         type: String,
@@ -42,13 +42,18 @@ const userSchema = new Schema({
     }
 )
 
-userSchema.pre('save', async function (next) {
-    if (this.isNew || this.isModified('password')) {
-        const saltRounds = 10
-        this.password = await bcrypt.hash(this.password, saltRounds)
+userSchema.pre("save", async function (next) {
+    if (this.isModified("password") && this.password) {
+        try {
+            const saltRounds = 10;
+            this.password = await bcrypt.hash(this.password, saltRounds);
+            console.log("Password after hashing:", this.password);
+        } catch (err) {
+            return next(err);
+        }
     }
-    next()
-})
+    next();
+});
 
 userSchema.methods.isCorrectPassword = async function (password) {
     return bcrypt.compare(password, this.password)

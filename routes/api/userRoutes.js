@@ -1,10 +1,11 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
+const PendingUser = require('../../models/PendingUsers')
 const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const jwt = require('jsonwebtoken')
-const { sendConfirmationEmail } = require('../../utils/sendConfirmationEmail')
+const sendConfirmationEmail = require('../../utils/sendConfirmationEmail')
 
 //Get a user from a jwt
 router.get('/getUser', auth, async (req, res) => {
@@ -212,49 +213,97 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
   }
 })
 
-router.post('/updateTractorsAndUsers', auth, async (req, res) => {
+//New User
+router.post('/newUser', async (req, res) => {
   try {
-    if (req.body.accountType === 'tractor') {
-      await Tractor.findOneAndReplace({ _id: req.body.updatedItem._id }, req.body.updatedItem)
-      const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
-      const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
-      const tractors = await Tractor.find({ belongsTo: req.user.username })
-      const categories = {
-        drivers: drivers,
-        tractors: tractors,
-        dispatchers: dispatchers
-      }
-      res.status(200).json(categories)
-    } else {
-      await User.findOneAndReplace({ _id: req.body.updatedItem._id }, req.body.updatedItem)
-      const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
-      const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
-      const tractors = await Tractor.find({ belongsTo: req.user.username })
-      const categories = {
-        drivers: drivers,
-        tractors: tractors,
-        dispatchers: dispatchers
-      }
-      res.status(200).json(categories)
+
+    console.log(req.body.confirmationCode)
+
+    const user = await PendingUser.findOne({ confirmationCode: req.body.confirmationCode });
+    console.log(user)
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid confirmation link." });
     }
+
+    console.log(user)
+
+    if (user.confirmationExpires < new Date()) {
+      return res.status(400).json({ message: "Confirmation link has expired." });
+    }
+
+    await User.create({
+      email: user.email,
+      name: req.body.name,
+      username: req.body.username,
+      accountType: user.accountType,
+      password: req.body.password,
+      admin: user.admin,
+      company: req.body.company
+    })
+    await PendingUser.deleteOne({confirmationCode: req.body.confirmationCode})
+    res.status(200)
   } catch (error) {
+    console.log(error)
     res.status(500).json(error)
   }
 })
 
-//New Tractor or User
-router.post('/newTractorOrUser', auth, async (req, res) => {
+//Create PendingUser 
+router.post('/newPendingUser', auth, async (req, res) => {
   try {
-    if (req.body.accountType === 'tractor') {
-      await Tractor.create({ ...req.body.newItem, belongsTo: req.user.username })
-
-    } else {
-      await User.create({ ...req.body.newItem, admin: req.user.username })
-
-    }
+    const confirmationCode = Math.random().toString(36).substring(2, 15);
+    const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    await PendingUser.create({
+      name: req.body.name,
+      email: req.body.email,
+      admin: req.user.username,
+      accountType: req.body.accountType,
+      confirmationCode: confirmationCode,
+      expirationTime: expirationTime
+    })
+    await sendConfirmationEmail(req.body.email, confirmationCode, req.body.name)
     res.status(200)
   } catch (error) {
+    console.log(error)
     res.status(500).json(error)
+  }
+})
+
+//User confirmation
+router.post('/confirm/:code', async (req, res) => {
+  const { code } = req.params
+
+  console.log(req.body)
+
+  try {
+    console.log('attempting to find user...')
+    const user = await User.findOne({ confirmationCode: code });
+    console.log(user)
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid confirmation link." });
+    }
+
+    // Check if the confirmation code has expired
+    if (user.confirmationExpires < new Date()) {
+      return res.status(400).json({ message: "Confirmation link has expired." });
+    }
+
+    // Mark user as verified
+    user.isVerified = true;
+    user.username = req.body.username
+    user.password = req.body.password
+    user.markModified("password");
+    user.confirmationCode = null; // Clear the code after use
+    user.confirmationExpires = null;
+    console.log(user)
+    await user.save();
+
+    res.json({ message: "Email confirmed successfully!" });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: "Error confirming email", error });
   }
 })
 
@@ -264,40 +313,6 @@ router.get('/getUsers', auth, async (req, res) => {
     const users = await User.find({ admin: req.user.username })
     res.status(200).json(users)
   } catch (error) {
-    res.status(500).json(error)
-  }
-})
-
-//Update users
-router.post('/setUsers', auth, async (req, res) => {
-  try {
-    await User.deleteMany({ accountType: 'driver', admin: req.user.username })
-    const reqUsers = req.body
-    reqUsers.forEach((user) => {
-      user = { ...user, admin: req.user.username }
-    })
-    const newUsers = await User.insertMany(reqUsers)
-    res.status(200).json(newUsers)
-  } catch (error) {
-    console.log(error)
-    res.status(500).json(error)
-  }
-})
-
-//New User
-router.post('/newUser', async (req, res) => {
-  try {
-    const user = req.body.user
-    const newUser = await User.create({
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      password: user.password,
-      accountType: user.accountType
-    })
-    res.status(200).json(newUser)
-  } catch (error) {
-    console.log(error)
     res.status(500).json(error)
   }
 })
