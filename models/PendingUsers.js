@@ -13,8 +13,7 @@ const pendingUserSchema = new Schema({
         required: true
     },
     admin: {
-        type: String,
-        required: true
+        type: String
     },
     accountType: {
         type: String,

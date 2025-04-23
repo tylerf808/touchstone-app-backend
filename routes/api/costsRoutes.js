@@ -7,6 +7,169 @@ const axios = require("axios");
 
 const jwt = require('jsonwebtoken')
 
+// Azure Maps API key
+const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
+
+// Route calculation endpoint
+router.post('/calculate', auth, async (req, res) => {
+  try {
+    const { startAddress, pickupAddress, dropoffAddress, truckDetails } = req.body;
+    
+    // First, geocode the addresses to get coordinates
+    const startPoint = await geocodeAddress(startAddress);
+    const pickupPoint = await geocodeAddress(pickupAddress);
+    const dropoffPoint = await geocodeAddress(dropoffAddress);
+    
+    if (!startPoint || !pickupPoint || !dropoffPoint) {
+      return res.status(400).json({ error: 'Could not geocode one or more addresses' });
+    }
+    
+    // Calculate route between points
+    const routeData = await calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetails);
+    
+    // Extract and format route information
+    const routeInfo = processRouteData(routeData);
+    
+    // Return route information
+    res.json(routeInfo);
+    
+  } catch (error) {
+    console.error('Route calculation error:', error);
+    res.status(500).json({ error: 'Error calculating route', details: error.message });
+  }
+});
+
+// Function to geocode an address
+async function geocodeAddress(address) {
+  try {
+    const response = await axios.get('https://atlas.microsoft.com/search/address/json', {
+      params: {
+        'api-version': '1.0',
+        'subscription-key': AZURE_MAPS_KEY,
+        'query': address
+      }
+    });
+    
+    if (response.data.results && response.data.results.length > 0) {
+      const result = response.data.results[0];
+      return {
+        latitude: result.position.lat,
+        longitude: result.position.lon,
+        formattedAddress: result.address.freeformAddress
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    throw new Error(`Error geocoding address: ${address}`);
+  }
+}
+
+// Function to calculate route between points
+async function calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetails) {
+  try {
+    // Create query parameters for truck routing
+    const params = {
+      'api-version': '1.0',
+      'subscription-key': AZURE_MAPS_KEY,
+      'query': `${startPoint.latitude},${startPoint.longitude}:${pickupPoint.latitude},${pickupPoint.longitude}:${dropoffPoint.latitude},${dropoffPoint.longitude}`,
+      'travelMode': 'truck',
+      'routeType': 'fastest',
+      'traffic': 'true',
+      'computeTravelTimeFor': 'all'
+    };
+    
+    // Add truck details if provided
+    if (truckDetails) {
+      if (truckDetails.vehicleWidth) params.vehicleWidth = truckDetails.vehicleWidth;
+      if (truckDetails.vehicleHeight) params.vehicleHeight = truckDetails.vehicleHeight;
+      if (truckDetails.vehicleLength) params.vehicleLength = truckDetails.vehicleLength;
+      if (truckDetails.vehicleWeight) params.vehicleWeight = truckDetails.vehicleWeight;
+      if (truckDetails.vehicleAxleWeight) params.vehicleAxleWeight = truckDetails.vehicleAxleWeight;
+      if (truckDetails.vehicleMaxSpeed) params.vehicleMaxSpeed = truckDetails.vehicleMaxSpeed;
+    }
+    
+    const response = await axios.get('https://atlas.microsoft.com/route/directions/json', { params });
+    
+    if (!response.data || !response.data.routes || response.data.routes.length === 0) {
+      throw new Error('No route found for the provided addresses');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Route calculation error:', error);
+    throw new Error('Error calculating truck route');
+  }
+}
+
+// Function to process and format route data
+function processRouteData(routeData) {
+  const route = routeData.routes[0];
+  
+  // Calculate route information
+  let totalDistanceInMeters = 0;
+  let totalTimeInSeconds = 0;
+  let totalTrafficDelayInSeconds = 0;
+  
+  route.legs.forEach(leg => {
+    totalDistanceInMeters += leg.summary.lengthInMeters;
+    totalTimeInSeconds += leg.summary.travelTimeInSeconds;
+    // Add traffic delay if available
+    if (leg.summary.trafficDelayInSeconds) {
+      totalTrafficDelayInSeconds += leg.summary.trafficDelayInSeconds;
+    }
+  });
+  
+  const distanceInKm = (totalDistanceInMeters / 1000).toFixed(2);
+  const distanceInMiles = (totalDistanceInMeters / 1609.344).toFixed(2);
+  const timeInHours = Math.floor(totalTimeInSeconds / 3600);
+  const timeInMinutes = Math.floor((totalTimeInSeconds % 3600) / 60);
+  const trafficDelayInMinutes = Math.floor(totalTrafficDelayInSeconds / 60);
+  
+  // Calculate additional metrics
+  const fuelConsumption = estimateFuelConsumption(totalDistanceInMeters);
+  const co2Emissions = estimateCO2Emissions(totalDistanceInMeters);
+  
+  // Extract route point coordinates for frontend rendering if needed
+  const routePoints = [];
+  route.legs.forEach(leg => {
+    leg.points.forEach(point => {
+      routePoints.push([point.longitude, point.latitude]);
+    });
+  });
+  
+  return {
+    distanceKm: distanceInKm,
+    distanceMiles: distanceInMiles,
+    hours: timeInHours,
+    minutes: timeInMinutes,
+    trafficDelay: trafficDelayInMinutes,
+    fuelConsumption: fuelConsumption,
+    co2Emissions: co2Emissions,
+    route: routeData,
+    points: routePoints
+  };
+}
+
+// Helper function to estimate fuel consumption (gallons for US)
+function estimateFuelConsumption(distanceInMeters) {
+  // Average truck fuel consumption: ~6 mpg
+  const gallonsPerMile = 1/6;
+  const distanceInMiles = distanceInMeters / 1609.344;
+  return (distanceInMiles * gallonsPerMile).toFixed(2);
+}
+
+// Helper function to estimate CO2 emissions
+function estimateCO2Emissions(distanceInMeters) {
+  // Average truck CO2 emissions: ~1.7 kg per mile
+  const kgCO2PerMile = 1.7;
+  const distanceInMiles = distanceInMeters / 1609.344;
+  return (distanceInMiles * kgCO2PerMile).toFixed(2);
+}
+
+module.exports = router;
+
 router.post('/check', auth, async (req, res) => {
 
   try {
@@ -41,7 +204,7 @@ router.post('/check', auth, async (req, res) => {
       }
     }).then((response) => { return response.data })
 
-    
+
 
 
     // Get rest stops along the route using Places API
@@ -131,7 +294,79 @@ router.post('/check', auth, async (req, res) => {
   }
 })
 
-//////GET Routes
+
+router.post('/checkRoute', async (req, res) => {
+  try {
+
+    const url = `https://atlas.microsoft.com/route/directions?api-version=2025-01-01&subscription-key=${process.env.AZURE_MAPS_KEY}`
+    const response = await axios.post(url, {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: [
+              -122.201399,
+              47.608678
+            ],
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 0,
+            pointType: "waypoint"
+          }
+        },
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: [
+              -122.20687,
+              47.612002
+            ],
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 1,
+            pointType: "viaWaypoint"
+          }
+        },
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: [
+              -122.201669,
+              47.615076
+            ],
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 2,
+            pointType: "waypoint"
+          }
+        }
+      ],
+      optimizedRoute: "fastestWithTraffic",
+      routeOutputOptions: [
+        "routePath"
+      ],
+      maxRouteCount: 3,
+      travelMode: "driving"
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    res.status(200).json(response.data);
+  } catch (err) {
+    console.error("Azure error:", err.response?.data || err.message);
+    res.status(500).json({
+      message: "Azure request failed",
+      error: err.response?.data || err.message,
+    });
+  }
+});
+
 //Query costs associated with a user
 //TODO: make it check the id of the costs obj and bring back the one associated to who signs in
 router.post('/', auth, async (req, res) => {
