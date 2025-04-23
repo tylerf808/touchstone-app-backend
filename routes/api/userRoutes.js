@@ -23,6 +23,16 @@ router.post('/check', async (req, res) => {
     const usernameExists = await User.exists({ username: req.body.username })
     const emailExists = await User.exists({ email: req.body.email })
     if (usernameExists === null && emailExists === null) {
+      const confirmationCode = Math.random().toString(36).substring(2, 15);
+      const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000)
+      await PendingUser.create({
+        name: req.body.name,
+        email: req.body.email,
+        accountType: req.body.accountType,
+        confirmationCode: confirmationCode,
+        expirationTime: expirationTime
+      })
+      await sendConfirmationEmail(req.body.email, confirmationCode, req.body.name)
       res.status(404).json({ msg: 'No user with that email or username' })
     } else if (emailExists && usernameExists) {
       res.status(200).json({ msg: 'Email and username already in use' })
@@ -32,6 +42,7 @@ router.post('/check', async (req, res) => {
       res.status(200).json({ msg: 'Username is already taken' })
     }
   } catch (err) {
+    console.log(err)
     res.status(500).json(err)
   }
 })
@@ -241,7 +252,7 @@ router.post('/newUser', async (req, res) => {
       admin: user.admin,
       company: req.body.company
     })
-    await PendingUser.deleteOne({confirmationCode: req.body.confirmationCode})
+    await PendingUser.deleteOne({ confirmationCode: req.body.confirmationCode })
     res.status(200)
   } catch (error) {
     console.log(error)
