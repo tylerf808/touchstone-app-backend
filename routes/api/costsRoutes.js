@@ -4,7 +4,7 @@ const Tractor = require('../../models/Tractor')
 const { getDirections, getGasPrice, findRestStops, parseAddress } = require('../../utils/helpers')
 const auth = require('../../utils/auth')
 const axios = require("axios");
-
+require('dotenv').config();
 const jwt = require('jsonwebtoken')
 
 // Azure Maps API key
@@ -13,26 +13,60 @@ const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
 // Route calculation endpoint
 router.post('/calculate', auth, async (req, res) => {
   try {
-    const { startAddress, pickupAddress, dropoffAddress, truckDetails } = req.body;
-    
+    const { startAddress, pickupAddress, dropoffAddress, startDate } = req.body;
+
     // First, geocode the addresses to get coordinates
     const startPoint = await geocodeAddress(startAddress);
     const pickupPoint = await geocodeAddress(pickupAddress);
     const dropoffPoint = await geocodeAddress(dropoffAddress);
-    
-    if (!startPoint || !pickupPoint || !dropoffPoint) {
-      return res.status(400).json({ error: 'Could not geocode one or more addresses' });
-    }
-    
-    // Calculate route between points
-    const routeData = await calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetails);
-    
-    // Extract and format route information
-    const routeInfo = processRouteData(routeData);
-    
-    // Return route information
-    res.json(routeInfo);
-    
+
+    const response = await axios.post(`https://atlas.microsoft.com/route/directions?api-version=2025-01-01&subscription-key=${AZURE_MAPS_KEY}`, {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: startPoint,
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 0,
+            pointType: "waypoint"
+          }
+        },
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: pickupPoint,
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 1,
+            pointType: "waypoint"
+          }
+        },
+        {
+          type: "Feature",
+          geometry: {
+            coordinates: dropoffPoint,
+            type: "Point"
+          },
+          properties: {
+            pointIndex: 2,
+            pointType: "waypoint"
+          }
+        },
+      ],
+      optimizeRoute: "fastestWithTraffic",
+      routeOutputOptions: [
+        "routePath"
+      ],
+      maxRouteCount: 3,
+      travelMode: "driving",
+      departAt: startDate
+    })
+
+    res.status(200).json(response.data)
   } catch (error) {
     console.error('Route calculation error:', error);
     res.status(500).json({ error: 'Error calculating route', details: error.message });
@@ -42,24 +76,15 @@ router.post('/calculate', auth, async (req, res) => {
 // Function to geocode an address
 async function geocodeAddress(address) {
   try {
-    const response = await axios.get('https://atlas.microsoft.com/search/address/json', {
-      params: {
-        'api-version': '1.0',
-        'subscription-key': AZURE_MAPS_KEY,
-        'query': address
-      }
+    const response = await axios.post(`https://atlas.microsoft.com/geocode:batch?api-version=2025-01-01&subscription-key=${process.env.AZURE_MAPS_KEY}`, {
+      batchItems: [
+        {
+          addressLine: address
+        }
+      ]
     });
-    
-    if (response.data.results && response.data.results.length > 0) {
-      const result = response.data.results[0];
-      return {
-        latitude: result.position.lat,
-        longitude: result.position.lon,
-        formattedAddress: result.address.freeformAddress
-      };
-    }
-    
-    return null;
+
+    return response.data.batchItems[0].features[0].geometry.coordinates;
   } catch (error) {
     console.error('Geocoding error:', error);
     throw new Error(`Error geocoding address: ${address}`);
@@ -79,7 +104,7 @@ async function calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetail
       'traffic': 'true',
       'computeTravelTimeFor': 'all'
     };
-    
+
     // Add truck details if provided
     if (truckDetails) {
       if (truckDetails.vehicleWidth) params.vehicleWidth = truckDetails.vehicleWidth;
@@ -89,13 +114,13 @@ async function calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetail
       if (truckDetails.vehicleAxleWeight) params.vehicleAxleWeight = truckDetails.vehicleAxleWeight;
       if (truckDetails.vehicleMaxSpeed) params.vehicleMaxSpeed = truckDetails.vehicleMaxSpeed;
     }
-    
+
     const response = await axios.get('https://atlas.microsoft.com/route/directions/json', { params });
-    
+
     if (!response.data || !response.data.routes || response.data.routes.length === 0) {
       throw new Error('No route found for the provided addresses');
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Route calculation error:', error);
@@ -106,12 +131,12 @@ async function calculateRoute(startPoint, pickupPoint, dropoffPoint, truckDetail
 // Function to process and format route data
 function processRouteData(routeData) {
   const route = routeData.routes[0];
-  
+
   // Calculate route information
   let totalDistanceInMeters = 0;
   let totalTimeInSeconds = 0;
   let totalTrafficDelayInSeconds = 0;
-  
+
   route.legs.forEach(leg => {
     totalDistanceInMeters += leg.summary.lengthInMeters;
     totalTimeInSeconds += leg.summary.travelTimeInSeconds;
@@ -120,17 +145,17 @@ function processRouteData(routeData) {
       totalTrafficDelayInSeconds += leg.summary.trafficDelayInSeconds;
     }
   });
-  
+
   const distanceInKm = (totalDistanceInMeters / 1000).toFixed(2);
   const distanceInMiles = (totalDistanceInMeters / 1609.344).toFixed(2);
   const timeInHours = Math.floor(totalTimeInSeconds / 3600);
   const timeInMinutes = Math.floor((totalTimeInSeconds % 3600) / 60);
   const trafficDelayInMinutes = Math.floor(totalTrafficDelayInSeconds / 60);
-  
+
   // Calculate additional metrics
   const fuelConsumption = estimateFuelConsumption(totalDistanceInMeters);
   const co2Emissions = estimateCO2Emissions(totalDistanceInMeters);
-  
+
   // Extract route point coordinates for frontend rendering if needed
   const routePoints = [];
   route.legs.forEach(leg => {
@@ -138,7 +163,7 @@ function processRouteData(routeData) {
       routePoints.push([point.longitude, point.latitude]);
     });
   });
-  
+
   return {
     distanceKm: distanceInKm,
     distanceMiles: distanceInMiles,
@@ -155,7 +180,7 @@ function processRouteData(routeData) {
 // Helper function to estimate fuel consumption (gallons for US)
 function estimateFuelConsumption(distanceInMeters) {
   // Average truck fuel consumption: ~6 mpg
-  const gallonsPerMile = 1/6;
+  const gallonsPerMile = 1 / 6;
   const distanceInMiles = distanceInMeters / 1609.344;
   return (distanceInMiles * gallonsPerMile).toFixed(2);
 }
