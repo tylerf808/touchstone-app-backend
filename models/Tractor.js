@@ -25,12 +25,24 @@ const tractorSchema = new Schema({
         require: true
     },
     height: {
-        type: String,
-        require: true
+        ft: {
+            type: Number,
+            require: true
+        },
+        in: {
+            type: Number,
+            require: true
+        }
     },
     width: {
-        type: String,
-        require: true
+        ft: {
+            type: Number,
+            require: true
+        },
+        in: {
+            type: Number,
+            require: true
+        }
     },
     weight: {
         type: Number,

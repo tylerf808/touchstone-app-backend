@@ -23,7 +23,6 @@ const userSchema = new Schema({
     },
     admin: {
         type: String,
-        required: true
     },
     accountType: {
         type: String,

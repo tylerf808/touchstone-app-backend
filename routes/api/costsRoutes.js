@@ -13,12 +13,14 @@ const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
 // Route calculation endpoint
 router.post('/calculate', auth, async (req, res) => {
   try {
-    const { startAddress, pickupAddress, dropoffAddress, startDate } = req.body;
+    const { startAddress, pickupAddress, dropoffAddress, startDate, tractor, logistics } = req.body;
 
     // First, geocode the addresses to get coordinates
     const startPoint = await geocodeAddress(startAddress);
     const pickupPoint = await geocodeAddress(pickupAddress);
     const dropoffPoint = await geocodeAddress(dropoffAddress);
+
+    console.log(logistics)
 
     const response = await axios.post(`https://atlas.microsoft.com/route/directions?api-version=2025-01-01&subscription-key=${AZURE_MAPS_KEY}`, {
       type: 'FeatureCollection',
@@ -62,13 +64,20 @@ router.post('/calculate', auth, async (req, res) => {
         "routePath"
       ],
       maxRouteCount: 3,
-      travelMode: "driving",
+      travelMode: "truck",
+      vehicleSpecs: {
+        height: (tractor.height.ft * 12 + tractor.height.in) / 39.37,
+        width: (tractor.width.ft * 12 + tractor.width.in) / 39.37,
+        weight: tractor.weight / 2.205,
+        isVehicleCommercial: true,
+        loadType: logistics.hazmat
+      }, 
       departAt: startDate
     })
 
     res.status(200).json(response.data)
   } catch (error) {
-    console.error('Route calculation error:', error);
+    console.error('Route calculation error:', error.message);
     res.status(500).json({ error: 'Error calculating route', details: error.message });
   }
 });
@@ -76,14 +85,13 @@ router.post('/calculate', auth, async (req, res) => {
 // Function to geocode an address
 async function geocodeAddress(address) {
   try {
-    const response = await axios.post(`https://atlas.microsoft.com/geocode:batch?api-version=2025-01-01&subscription-key=${process.env.AZURE_MAPS_KEY}`, {
+    const response = await axios.post(`https://atlas.microsoft.com/geocode:batch?api-version=2025-01-01&subscription-key=${AZURE_MAPS_KEY}`, {
       batchItems: [
         {
           addressLine: address
         }
       ]
     });
-
     return response.data.batchItems[0].features[0].geometry.coordinates;
   } catch (error) {
     console.error('Geocoding error:', error);

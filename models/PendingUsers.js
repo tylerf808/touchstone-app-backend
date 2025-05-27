@@ -26,6 +26,10 @@ const pendingUserSchema = new Schema({
     expirationTime: {
         type: Date,
         required: true
+    },
+    username: {
+        type: String,
+        require: true
     }
 },
     {

@@ -15,15 +15,15 @@ const sendSignUpEmail = async (toEmail, confirmationCode, name) => {
   let confirmationUrl
 
   if (process.env.environment === 'development') {
-    confirmationUrl = `http://localhost:3000/confirmSignUp/?code=${confirmationCode}`
+    confirmationUrl = `http://localhost:3000/confirmPendingUser/?code=${confirmationCode}`
   } else {
-    confirmationUrl = `https://touchstone-app-frontend.onrender.com/confirmSignUp/?code=${confirmationCode}`
+    confirmationUrl = `https://touchstone-app-frontend.onrender.com/confirmPendingUser/?code=${confirmationCode}`
   }
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: toEmail,
-    subject: "Confirm Your Email | Touchstone Logistics",
+    subject: "Complete Sign Up | Touchstone Logistics",
     html: `<h2>Touchstone Invite for ${name}</h2>
            <p>Please confirm your email by clicking the link below and complete the rest of the sign up steps.</p>
            <a href=${confirmationUrl}>Confirm Email</a>`,

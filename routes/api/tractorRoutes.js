@@ -34,7 +34,7 @@ router.post('/newTractor', auth, async (req, res) => {
 //Delete a tractor
 router.post('/deleteTractor', auth, async (req, res) => {
     try {
-        await Tractor.findOneAndDelete({ internalNum: req.body.internalNum, belongsTo: req.user.username })
+        await Tractor.findOneAndDelete({ _id: req.body._id })
         res.status(200).json({ msg: 'Tractor deleted' })
     } catch (error) {
         res.status(500).json(error)

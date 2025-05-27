@@ -6,6 +6,7 @@ const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const jwt = require('jsonwebtoken')
 const sendConfirmationEmail = require('../../utils/sendConfirmationEmail')
+const sendSignUpEmail = require('../../utils/sendSignUpEmail')
 
 //Get a user from a jwt
 router.get('/getUser', auth, async (req, res) => {
@@ -16,6 +17,99 @@ router.get('/getUser', auth, async (req, res) => {
     res.status(500).json(err)
   }
 })
+
+router.post('/getPendingAccount', async (req, res) => {
+  try {
+    const pendingUser = await PendingUser.find({ confirmationCode: req.body.code })
+    res.status(200).json(pendingUser)
+  } catch (error) {
+    res.status(500).json(err)
+  }
+})
+
+router.post('/confirmPendingAccount', async (req, res) => {
+  try {
+    const confirmationCode = req.body.confirmationCode
+    const account = await PendingUser.findOne({ confirmationCode });
+
+    if (!account || !account.username) {
+      return res.status(400).json({ msg: 'Invalid or incomplete pending user account' });
+    }
+
+    const { operationalCosts, fixedCosts, tractors, users } = req.body;
+
+    console.log('Setting up for:', account.username);
+
+    await User.create({
+      name: account.name,
+      username: account.username,
+      email: account.email,
+      accountType: account.accountType,
+      password: req.body.password
+    });
+
+    await Costs.create({
+      tractorLease: operationalCosts.tractorLease,
+      trailerLease: operationalCosts.trailerLease,
+      repairs: operationalCosts.repairs,
+      loan: operationalCosts.loan,
+      parking: operationalCosts.parking,
+      gAndA: operationalCosts.gAndA,
+      laborRate: fixedCosts.labor,
+      payrollTax: fixedCosts.payroll,
+      dispatch: fixedCosts.dispatch,
+      factor: fixedCosts.factor,
+      odc: fixedCosts.odc,
+      overhead: fixedCosts.overhead,
+      belongsTo: account.username
+    });
+
+    await Promise.all(tractors.map(async (tractor) => {
+      await Tractor.create({
+        belongsTo: account.username,
+        internalNum: tractor.internalNum,
+        vin: tractor.vin,
+        insurance: tractor.insurance,
+        mpg: tractor.mpg,
+        height: {
+          ft: tractor.height.ft,
+          in: tractor.height.in
+        },
+        width: {
+          ft: tractor.width.ft,
+          in: tractor.width.in
+        },
+        weight: tractor.weight
+      });
+    }));
+
+    await Promise.all(users.map(async (user) => {
+      const subConfirmationCode = Math.random().toString(36).substring(2, 15);
+      const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await PendingUser.create({
+        name: user.name,
+        email: user.email,
+        admin: account.username,
+        accountType: user.accountType,
+        confirmationCode: subConfirmationCode,
+        expirationTime
+      });
+
+      // await sendConfirmationEmail(user.email, subConfirmationCode, user.name);
+    }));
+
+    const deleted = await PendingUser.findOneAndDelete({ confirmationCode });
+    console.log('Deleted pending user:', deleted);
+
+    res.status(200).json({ msg: 'Account created successfully' });
+  } catch (error) {
+    console.error('Error in confirmPendingAccount:', error);
+    res.status(500).json({ msg: 'Internal server error', error });
+  }
+});
+
+
 
 //Check if driver with an email or username already exists during sign up.
 router.post('/check', async (req, res) => {
@@ -29,10 +123,12 @@ router.post('/check', async (req, res) => {
         name: req.body.name,
         email: req.body.email,
         accountType: req.body.accountType,
+        password: req.body.password,
+        username: req.body.username,
         confirmationCode: confirmationCode,
         expirationTime: expirationTime
       })
-      await sendConfirmationEmail(req.body.email, confirmationCode, req.body.name)
+      await sendSignUpEmail(req.body.email, confirmationCode, req.body.name)
       res.status(404).json({ msg: 'No user with that email or username' })
     } else if (emailExists && usernameExists) {
       res.status(200).json({ msg: 'Email and username already in use' })
@@ -204,7 +300,11 @@ router.post('/editUser', auth, async (req, res) => {
 router.post('/deleteUser', auth, async (req, res) => {
   try {
     const user = req.body.user
-    await User.findByIdAndDelete({ _id: user._id })
+    if(user.confirmationCode){
+      await PendingUser.findByIdAndDelete({_id: user._id})
+    } else {
+      await User.findByIdAndDelete({ _id: user._id })
+    }
     res.status(200).json({ msg: 'User deleted' })
   } catch (error) {
     res.status(500).json(error)
@@ -228,16 +328,11 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
 router.post('/newUser', async (req, res) => {
   try {
 
-    console.log(req.body.confirmationCode)
-
     const user = await PendingUser.findOne({ confirmationCode: req.body.confirmationCode });
-    console.log(user)
 
     if (!user) {
       return res.status(400).json({ message: "Invalid confirmation link." });
     }
-
-    console.log(user)
 
     if (user.confirmationExpires < new Date()) {
       return res.status(400).json({ message: "Confirmation link has expired." });
@@ -269,6 +364,7 @@ router.post('/newPendingUser', auth, async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       admin: req.user.username,
+      username: req.body.username,
       accountType: req.body.accountType,
       confirmationCode: confirmationCode,
       expirationTime: expirationTime
@@ -285,12 +381,8 @@ router.post('/newPendingUser', auth, async (req, res) => {
 router.post('/confirm/:code', async (req, res) => {
   const { code } = req.params
 
-  console.log(req.body)
-
   try {
-    console.log('attempting to find user...')
     const user = await User.findOne({ confirmationCode: code });
-    console.log(user)
 
     if (!user) {
       return res.status(400).json({ message: "Invalid confirmation link." });
@@ -308,12 +400,10 @@ router.post('/confirm/:code', async (req, res) => {
     user.markModified("password");
     user.confirmationCode = null; // Clear the code after use
     user.confirmationExpires = null;
-    console.log(user)
     await user.save();
 
     res.json({ message: "Email confirmed successfully!" });
   } catch (error) {
-    console.log(error)
     res.status(500).json({ message: "Error confirming email", error });
   }
 })
@@ -322,7 +412,8 @@ router.post('/confirm/:code', async (req, res) => {
 router.get('/getUsers', auth, async (req, res) => {
   try {
     const users = await User.find({ admin: req.user.username })
-    res.status(200).json(users)
+    const pendingUsers = await PendingUser.find({admin: req.user.username})
+    res.status(200).json({users: users, pendingUsers: pendingUsers})
   } catch (error) {
     res.status(500).json(error)
   }
