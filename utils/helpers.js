@@ -1,4 +1,5 @@
 const axios = require("axios");
+const cheerio = require("cheerio");
 
 const routeCallConfig = {
   headers: {
@@ -9,39 +10,26 @@ const routeCallConfig = {
 const url =
   " https://routes.googleapis.com/directions/v2:computeRoutes?key=AIzaSyDcXIOrxmAOOPEvqjLEXVeZb9mdTyUqS6k";
 
-const getGasPrice = async (state1, state2, state3) => {
-  const state1Res = await axios
-    .get("https://api.collectapi.com/gasPrice/stateUsaPrice?state=" + state1, {
-      headers: {
-        authorization: "apikey 4JZ6EJzzWJ3XEE2535zUXd:0YB2BIARDg8MctdIkdOhqd",
-      },
-    })
-    .then((response) => {
-      return response.data;
+const getGasPrice = async () => {
+  try {
+    const { data } = await axios.get('https://gasprices.aaa.com/');
+    const $ = cheerio.load(data);
+
+    // Find the table row containing "Diesel"
+    let dieselPrice = null;
+    $('table#national-average tbody tr').each((i, row) => {
+      const fuelType = $(row).find('td').eq(0).text().trim();
+      if (fuelType.toLowerCase().includes('diesel')) {
+        dieselPrice = $(row).find('td').eq(1).text().trim();
+      }
     });
-  const state2Res = await axios
-    .get("https://api.collectapi.com/gasPrice/stateUsaPrice?state=" + state2, {
-      headers: {
-        authorization: "apikey 4JZ6EJzzWJ3XEE2535zUXd:0YB2BIARDg8MctdIkdOhqd",
-      },
-    })
-    .then((response) => {
-      return response.data;
-    });
-  const state3Res = await axios
-    .get("https://api.collectapi.com/gasPrice/stateUsaPrice?state=" + state3, {
-      headers: {
-        authorization: "apikey 4JZ6EJzzWJ3XEE2535zUXd:0YB2BIARDg8MctdIkdOhqd",
-      },
-    })
-    .then((response) => {
-      return response.data;
-    });
-  const aveGasPrice =
-    (parseFloat(state1Res.result.state.diesel) +
-    parseFloat(state2Res.result.state.diesel) +
-    parseFloat(state3Res.result.state.diesel))/3;
-  return aveGasPrice;
+
+    if (!dieselPrice) throw new Error('Diesel price not found');
+    return parseFloat(dieselPrice.replace('$', ''));
+  } catch (err) {
+    console.error('Error scraping diesel price:', err.message);
+    return null;
+  }
 };
 
 const getDirections = async (start, pickUp, dropOff) => {
@@ -62,28 +50,20 @@ const getDirections = async (start, pickUp, dropOff) => {
 
 async function findRestStops(routePath) {
   try {
-      // Sample points along the route to search for rest stops
-      const searchPoints = sampleRoutePoints(routePath, 50); // Every 50km
+    const { data } = await axios.get('https://gasprices.aaa.com/');
+    const $ = cheerio.load(data);
 
-      const restStops = [];
-      for (const point of searchPoints) {
-          const response = await axios.get('https://maps.googleapis.com/maps/api/place/nearbysearch/json', {
-              params: {
-                  location: `${point.lat},${point.lng}`,
-                  radius: 5000, // 5km radius
-                  type: 'parking',
-                  keyword: 'truck rest stop',
-                  key: process.env.GOOGLE_MAPS_API_KEY
-              }
-          });
+    // Select the first row of the table with class 'table-mob'
+    const firstRow = $('table.table-mob tbody tr').first();
+    
+    // The fifth td (index 4) is the national average diesel price
+    const dieselPrice = firstRow.find('td').eq(4).text().trim();
 
-          restStops.push(...response.data.results);
-      }
-      
-      return restStops;
-  } catch (error) {
-      console.error('Error finding rest stops:', error);
-      return [];
+    if (!dieselPrice) throw new Error('Diesel price not found');
+    return parseFloat(dieselPrice.replace(/[^0-9.]/g, ''));
+  } catch (err) {
+    console.error('Error scraping diesel price:', err.message);
+    return null;
   }
 }
 

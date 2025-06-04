@@ -9,73 +9,79 @@ const jwt = require('jsonwebtoken')
 
 // Azure Maps API key
 const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
+const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
 
 // Route calculation endpoint
 router.post('/calculate', auth, async (req, res) => {
   try {
     const { startAddress, pickupAddress, dropoffAddress, startDate, tractor, logistics } = req.body;
 
-    // First, geocode the addresses to get coordinates
-    const startPoint = await geocodeAddress(startAddress);
-    const pickupPoint = await geocodeAddress(pickupAddress);
-    const dropoffPoint = await geocodeAddress(dropoffAddress);
+    const userCosts = await Costs.findOne({ belongsTo: req.user.username })
 
-    console.log(logistics)
-
-    const response = await axios.post(`https://atlas.microsoft.com/route/directions?api-version=2025-01-01&subscription-key=${AZURE_MAPS_KEY}`, {
-      type: 'FeatureCollection',
-      features: [
+    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', {
+      from: {
+        address: startAddress
+      },
+      to: {
+        address: dropoffAddress
+      },
+      waypoints: [
         {
-          type: "Feature",
-          geometry: {
-            coordinates: startPoint,
-            type: "Point"
-          },
-          properties: {
-            pointIndex: 0,
-            pointType: "waypoint"
-          }
-        },
-        {
-          type: "Feature",
-          geometry: {
-            coordinates: pickupPoint,
-            type: "Point"
-          },
-          properties: {
-            pointIndex: 1,
-            pointType: "waypoint"
-          }
-        },
-        {
-          type: "Feature",
-          geometry: {
-            coordinates: dropoffPoint,
-            type: "Point"
-          },
-          properties: {
-            pointIndex: 2,
-            pointType: "waypoint"
-          }
-        },
+          address: pickupAddress
+        }
       ],
-      optimizeRoute: "fastestWithTraffic",
-      routeOutputOptions: [
-        "routePath"
-      ],
-      maxRouteCount: 3,
-      travelMode: "truck",
-      vehicleSpecs: {
-        height: (tractor.height.ft * 12 + tractor.height.in) / 39.37,
-        width: (tractor.width.ft * 12 + tractor.width.in) / 39.37,
-        weight: tractor.weight / 2.205,
-        isVehicleCommercial: true,
-        loadType: logistics.hazmat
-      }, 
-      departAt: startDate
-    })
+      vehicleType: "5AxlesTruck",
+      serviceProvider: "tollguru",
+      getPathPolygon: true,
+      getVehicleStops: true,
+      vehicle: {
+        height: { value: tractor.height.ft + (tractor.height.in / 12), unit: 'feet' },
+        width: { value: tractor.width.ft + (tractor.width.in / 12), unit: 'feet' },
+        weight: { value: tractor.weight, unit: 'pounds' },
+      }
+    }, {
+      headers: {
+        "x-api-key": TOLL_GURU_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    res.status(200).json(response.data)
+    const routeDurationSeconds = routeResponse.data.routes[0].summary.duration.value; // duration in seconds
+    const secondsInMonth = 30.44 * 24 * 60 * 60;
+
+    const jobData = {
+      start: startAddress,
+      pickUp: pickupAddress,
+      dropOff: dropoffAddress,
+      date: startDate,
+      revenue: logistics.revenue,
+      distance: routeResponse.data.routes[0].summary.distance.value / 1609.34,
+      driveTime: routeResponse.data.routes[0].summary.duration.text,
+      client: logistics.client,
+      driver: logistics.driver.username,
+      admin: req.user.username,
+      tractor: tractor.internalNum,
+      tractorLease: (userCosts.tractorLease / secondsInMonth) * routeDurationSeconds,
+      trailerLease: (userCosts.trailerLease / secondsInMonth) * routeDurationSeconds,
+      repairs: userCosts.repairs * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
+      loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
+      parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
+      gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
+      labor: logistics.revenue * userCosts.laborRate,
+      payrollTax: logistics.revenue * userCosts.payrollTax,
+      dispatch: logistics.revenue * userCosts.dispatch,
+      factor: logistics.revenue * userCosts.factor,
+      odc: logistics.revenue * userCosts.odc,
+      overhead: logistics.revenue * userCosts.overhead,
+      tolls: routeResponse.data.routes[0].costs.maximumTollCost,
+      gasCost: routeResponse.data.routes[0].costs.fuel
+    }
+
+    jobData.totalCost = Object.entries(jobData)
+      .filter(([key, value]) => typeof value === 'number' && key !== 'revenue' && key !== 'distance')
+      .reduce((sum, [_, value]) => sum + value, 0);
+
+    res.status(200).json(jobData);
   } catch (error) {
     console.error('Route calculation error:', error.message);
     res.status(500).json({ error: 'Error calculating route', details: error.message });
@@ -85,17 +91,37 @@ router.post('/calculate', auth, async (req, res) => {
 // Function to geocode an address
 async function geocodeAddress(address) {
   try {
-    const response = await axios.post(`https://atlas.microsoft.com/geocode:batch?api-version=2025-01-01&subscription-key=${AZURE_MAPS_KEY}`, {
-      batchItems: [
-        {
-          addressLine: address
-        }
-      ]
+    // Add countrySet parameter to limit search to US
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&subscription-key=${AZURE_MAPS_KEY}&query=${encodedAddress}&countrySet=US`;
+
+    const response = await axios.get(url, {
+      headers: {
+        'Accept': 'application/json'
+      }
     });
-    return response.data.batchItems[0].features[0].geometry.coordinates;
+
+    if (!response.data.results || response.data.results.length === 0) {
+      throw new Error(`No results found for address: ${address}`);
+    }
+
+    // Log the response data for debugging
+    console.log('Geocoding response:', response.data.results[0]);
+
+    // Check if we have valid coordinates
+    const coordinates = response.data.results[0].position;
+    if (!coordinates || !coordinates.lat || !coordinates.lon) {
+      throw new Error(`Invalid coordinates returned for address: ${address}`);
+    }
+
+    return [coordinates.lon, coordinates.lat]; // Return in [lon, lat] format
   } catch (error) {
-    console.error('Geocoding error:', error);
-    throw new Error(`Error geocoding address: ${address}`);
+    console.error('Geocoding error:', {
+      address,
+      error: error.message,
+      stack: error.stack
+    });
+    throw new Error(`Error geocoding address: ${address}. Error: ${error.message}`);
   }
 }
 
