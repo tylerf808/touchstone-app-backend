@@ -49,12 +49,30 @@ router.post('/calculate', auth, async (req, res) => {
     const routeDurationSeconds = routeResponse.data.routes[0].summary.duration.value; // duration in seconds
     const secondsInMonth = 30.44 * 24 * 60 * 60;
 
+    const operatingCosts = {
+      tractorLease: (userCosts.tractorLease / secondsInMonth) * routeDurationSeconds,
+      trailerLease: (userCosts.trailerLease / secondsInMonth) * routeDurationSeconds,
+      repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
+      loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
+      parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
+      gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
+    }
+
+    const fixedCosts = {
+      labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
+      payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
+      dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
+      factor: parseFloat(logistics.revenue) * (userCosts.factor / 100),
+      odc: parseFloat(logistics.revenue) * (userCosts.odc / 100),
+      overhead: parseFloat(logistics.revenue) * (userCosts.overhead / 100),
+    }
+
     const jobData = {
       start: startAddress,
       pickUp: pickupAddress,
       dropOff: dropoffAddress,
       date: startDate,
-      revenue: logistics.revenue,
+      revenue: parseFloat(logistics.revenue),
       distance: routeResponse.data.routes[0].summary.distance.value / 1609.34,
       driveTime: routeResponse.data.routes[0].summary.duration.text,
       client: logistics.client,
@@ -63,23 +81,43 @@ router.post('/calculate', auth, async (req, res) => {
       tractor: tractor.internalNum,
       tractorLease: (userCosts.tractorLease / secondsInMonth) * routeDurationSeconds,
       trailerLease: (userCosts.trailerLease / secondsInMonth) * routeDurationSeconds,
-      repairs: userCosts.repairs * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
+      repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
       loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
       parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
       gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
-      labor: logistics.revenue * userCosts.laborRate,
-      payrollTax: logistics.revenue * userCosts.payrollTax,
-      dispatch: logistics.revenue * userCosts.dispatch,
-      factor: logistics.revenue * userCosts.factor,
-      odc: logistics.revenue * userCosts.odc,
-      overhead: logistics.revenue * userCosts.overhead,
+      labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
+      payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
+      dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
+      factor: parseFloat(logistics.revenue) * (userCosts.factor / 100),
+      odc: parseFloat(logistics.revenue) * (userCosts.odc / 100),
+      overhead: parseFloat(logistics.revenue) * (userCosts.overhead / 100),
       tolls: routeResponse.data.routes[0].costs.maximumTollCost,
       gasCost: routeResponse.data.routes[0].costs.fuel
     }
 
-    jobData.totalCost = Object.entries(jobData)
-      .filter(([key, value]) => typeof value === 'number' && key !== 'revenue' && key !== 'distance')
+    jobData.totalOperatingCost = Object.entries(operatingCosts)
       .reduce((sum, [_, value]) => sum + value, 0);
+
+    jobData.totalFixedCost = Object.entries(fixedCosts)
+      .reduce((sum, [_, value]) => sum + value, 0);
+
+    jobData.operatingProfit = parseFloat(logistics.revenue) - jobData.totalOperatingCost
+    jobData.grossProfit = parseFloat(logistics.revenue) - jobData.totalOperatingCost - jobData.totalFixedCost
+
+    jobData.grossProfitPercentage = (((parseFloat(logistics.revenue) - jobData.totalFixedCost) / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
+    jobData.operatingProfitPercentage = (((parseFloat(logistics.revenue) - jobData.totalOperatingCost - jobData.totalFixedCost) / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
+
+    jobData.totalCost = jobData.totalOperatingCost + jobData.totalFixedCost + jobData.tolls + jobData.gasCost
+
+    jobData.netProfit = parseFloat(logistics.revenue) - jobData.totalCost
+
+    jobData.netProfitPercentage = ((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
+
+    if (jobData.totalCost >= parseFloat(logistics.revenue)) {
+      jobData.profitable = false
+    } else {
+      jobData.profitable = true
+    }
 
     res.status(200).json(jobData);
   } catch (error) {

@@ -7,7 +7,7 @@ const jobSchema = new Schema({
     start: { type: String, required: true },
     pickUp: { type: String, required: true },
     dropOff: { type: String, required: true },
-    date: { type: String },
+    date: { type: String, required: true },
 
     // Financial details
     revenue: { type: Number, required: true },
@@ -34,6 +34,7 @@ const jobSchema = new Schema({
     grossProfit: { type: Number, required: true },
     operatingProfit: { type: Number, required: true },
     totalFixedCost: { type: Number, required: true },
+    totalOperatingCost: { type: Number, required: true},
 
     // Other details
     distance: { type: Number, required: true },
