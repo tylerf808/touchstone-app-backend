@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
 const Tractor = require('../../models/Tractor')
-const { getDirections, getGasPrice, findRestStops, parseAddress } = require('../../utils/helpers')
+const { getDirections, findRestStops, parseAddress } = require('../../utils/helpers')
 const auth = require('../../utils/auth')
 const axios = require("axios");
 require('dotenv').config();
