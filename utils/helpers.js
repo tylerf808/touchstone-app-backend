@@ -1,5 +1,5 @@
 const axios = require("axios");
-const cheerio = require("cheerio");
+
 
 const routeCallConfig = {
   headers: {
@@ -10,27 +10,6 @@ const routeCallConfig = {
 const url =
   " https://routes.googleapis.com/directions/v2:computeRoutes?key=AIzaSyDcXIOrxmAOOPEvqjLEXVeZb9mdTyUqS6k";
 
-const getGasPrice = async () => {
-  try {
-    const { data } = await axios.get('https://gasprices.aaa.com/');
-    const $ = cheerio.load(data);
-
-    // Find the table row containing "Diesel"
-    let dieselPrice = null;
-    $('table#national-average tbody tr').each((i, row) => {
-      const fuelType = $(row).find('td').eq(0).text().trim();
-      if (fuelType.toLowerCase().includes('diesel')) {
-        dieselPrice = $(row).find('td').eq(1).text().trim();
-      }
-    });
-
-    if (!dieselPrice) throw new Error('Diesel price not found');
-    return parseFloat(dieselPrice.replace('$', ''));
-  } catch (err) {
-    console.error('Error scraping diesel price:', err.message);
-    return null;
-  }
-};
 
 const getDirections = async (start, pickUp, dropOff) => {
   const directionsResObj = await axios.post(url, {
@@ -142,4 +121,4 @@ function parseAddress(addressString) {
   };
 }
 
-module.exports = { getGasPrice, getDirections, findRestStops, parseAddress };
+module.exports = { getDirections, findRestStops, parseAddress };

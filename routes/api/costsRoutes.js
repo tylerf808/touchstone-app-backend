@@ -1,11 +1,9 @@
 const router = require('express').Router()
 const Costs = require('../../models/Costs')
 const Tractor = require('../../models/Tractor')
-const { getDirections, getGasPrice, findRestStops, parseAddress } = require('../../utils/helpers')
 const auth = require('../../utils/auth')
 const axios = require("axios");
 require('dotenv').config();
-const jwt = require('jsonwebtoken')
 
 // Azure Maps API key
 const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
@@ -17,6 +15,7 @@ router.post('/calculate', auth, async (req, res) => {
     const { startAddress, pickupAddress, dropoffAddress, startDate, tractor, logistics } = req.body;
 
     const userCosts = await Costs.findOne({ belongsTo: req.user.username })
+    const userTractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: tractor.internalNum })
 
     const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', {
       from: {
@@ -56,6 +55,7 @@ router.post('/calculate', auth, async (req, res) => {
       loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
       parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
       gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
+      insurance: (userTractor.insurance / secondsInMonth) * routeDurationSeconds
     }
 
     const fixedCosts = {
@@ -91,8 +91,11 @@ router.post('/calculate', auth, async (req, res) => {
       factor: parseFloat(logistics.revenue) * (userCosts.factor / 100),
       odc: parseFloat(logistics.revenue) * (userCosts.odc / 100),
       overhead: parseFloat(logistics.revenue) * (userCosts.overhead / 100),
-      tolls: routeResponse.data.routes[0].costs.maximumTollCost,
-      gasCost: routeResponse.data.routes[0].costs.fuel
+      tolls: routeResponse.data.routes[0].costs.maximumTollCost || 0,
+      gasCost: routeResponse.data.routes[0].costs.fuel,
+      ratePerMile: (logistics.revenue / routeResponse.data.routes[0].summary.distance.value / 1609.34) * 100,
+      laborRatePercent: userCosts.laborRate,
+      insurance: (userTractor.insurance / secondsInMonth) * routeDurationSeconds
     }
 
     jobData.totalOperatingCost = Object.entries(operatingCosts)
@@ -113,6 +116,8 @@ router.post('/calculate', auth, async (req, res) => {
 
     jobData.netProfitPercentage = ((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 
+    jobData.tollGuruResponse = routeResponse.data
+
     if (jobData.totalCost >= parseFloat(logistics.revenue)) {
       jobData.profitable = false
     } else {
@@ -126,42 +131,6 @@ router.post('/calculate', auth, async (req, res) => {
   }
 });
 
-// Function to geocode an address
-async function geocodeAddress(address) {
-  try {
-    // Add countrySet parameter to limit search to US
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&subscription-key=${AZURE_MAPS_KEY}&query=${encodedAddress}&countrySet=US`;
-
-    const response = await axios.get(url, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.data.results || response.data.results.length === 0) {
-      throw new Error(`No results found for address: ${address}`);
-    }
-
-    // Log the response data for debugging
-    console.log('Geocoding response:', response.data.results[0]);
-
-    // Check if we have valid coordinates
-    const coordinates = response.data.results[0].position;
-    if (!coordinates || !coordinates.lat || !coordinates.lon) {
-      throw new Error(`Invalid coordinates returned for address: ${address}`);
-    }
-
-    return [coordinates.lon, coordinates.lat]; // Return in [lon, lat] format
-  } catch (error) {
-    console.error('Geocoding error:', {
-      address,
-      error: error.message,
-      stack: error.stack
-    });
-    throw new Error(`Error geocoding address: ${address}. Error: ${error.message}`);
-  }
-}
 
 //Query costs associated with a user
 //TODO: make it check the id of the costs obj and bring back the one associated to who signs in
