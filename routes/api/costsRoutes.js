@@ -17,7 +17,7 @@ router.post('/calculate', auth, async (req, res) => {
     const userCosts = await Costs.findOne({ belongsTo: req.user.username })
     const userTractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: tractor.internalNum })
 
-    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', {
+    const payload = {
       from: {
         address: startAddress
       },
@@ -36,9 +36,18 @@ router.post('/calculate', auth, async (req, res) => {
       vehicle: {
         height: { value: tractor.height.ft + (tractor.height.in / 12), unit: 'feet' },
         width: { value: tractor.width.ft + (tractor.width.in / 12), unit: 'feet' },
-        weight: { value: tractor.weight, unit: 'pounds' },
+        weight: { value: tractor.weight, unit: 'pounds' }
+      },
+      truck: {
+        shippedHazardousGoods: null
       }
-    }, {
+    }
+
+    if(logistics.hazmat !== null){
+      payload.truck.shippedHazardousGoods = logistics.hazmat
+    }
+
+    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', payload, {
       headers: {
         "x-api-key": TOLL_GURU_KEY,
         'Content-Type': 'application/json'
