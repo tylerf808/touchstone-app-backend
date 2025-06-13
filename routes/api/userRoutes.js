@@ -317,7 +317,7 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
     const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
     const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
     const tractors = await Tractor.find({ belongsTo: req.user.username })
-    const pendingUsers = await PendingUser.find({belongsTo: req.user.username})
+    const pendingUsers = await PendingUser.find({admin: req.user.username})
     pendingUsers.forEach((user) => {
       if(user.accountType === 'driver'){
         drivers.push(user)
