@@ -58,12 +58,11 @@ router.post('/calculate', auth, async (req, res) => {
     const secondsInMonth = 30.44 * 24 * 60 * 60;
 
     const operatingCosts = {
-      tractorLease: (userCosts.tractorLease / secondsInMonth) * routeDurationSeconds,
-      trailerLease: (userCosts.trailerLease / secondsInMonth) * routeDurationSeconds,
+      tractorLease: (tractor.tractorLease / secondsInMonth) * routeDurationSeconds,
+      trailerLease: (tractor.trailerLease / secondsInMonth) * routeDurationSeconds,
       repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
       loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
       parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
-      gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
       insurance: (userTractor.insurance / secondsInMonth) * routeDurationSeconds
     }
 
@@ -88,12 +87,11 @@ router.post('/calculate', auth, async (req, res) => {
       driver: logistics.driver.username,
       admin: req.user.username,
       tractor: tractor.internalNum,
-      tractorLease: (userCosts.tractorLease / secondsInMonth) * routeDurationSeconds,
-      trailerLease: (userCosts.trailerLease / secondsInMonth) * routeDurationSeconds,
+      tractorLease: (tractor.tractorLease / secondsInMonth) * routeDurationSeconds,
+      trailerLease: (tractor.trailerLease / secondsInMonth) * routeDurationSeconds,
       repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
       loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
       parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
-      gAndA: (userCosts.gAndA / secondsInMonth) * routeDurationSeconds,
       labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
       payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
       dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),

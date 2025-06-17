@@ -23,7 +23,9 @@ router.post('/newTractor', auth, async (req, res) => {
             height: req.body.height,
             width: req.body.width,
             weight: req.body.weight,
-            belongsTo: req.user.username
+            belongsTo: req.user.username,
+            tractorLease: req.body.tractorLease,
+            trailerLease: req.body.trailerLease
         })
         res.status(200).json({ msg: 'Tractor added' })
     } catch (error) {
@@ -52,7 +54,9 @@ router.post('/editTractor', auth, async (req, res) => {
                 internalNum: req.body.internalNum,
                 height: req.body.height,
                 width: req.body.width,
-                weight: req.body.weight
+                weight: req.body.weight,
+                tractorLease: req.body.tractorLease,
+                trailerLease: req.body.trailerLease
             },
             {
                 new: true

@@ -28,9 +28,6 @@ const costsSchema = new Schema({
     trailerLease: {
         type: Number
     },
-    gAndA: {
-        type: Number
-    },
     loan: {
         type: Number
     },

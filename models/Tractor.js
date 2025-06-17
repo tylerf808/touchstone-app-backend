@@ -17,10 +17,18 @@ const tractorSchema = new Schema({
         require: true
     },
     vin: {
-        type: Number,
+        type: String,
         required: true
     },
     internalNum: {
+        type: Number,
+        require: true
+    },
+    tractorLease: {
+        type: Number,
+        require: true
+    },
+    trailerLease: {
         type: Number,
         require: true
     },
