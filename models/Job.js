@@ -10,6 +10,7 @@ const jobSchema = new Schema({
     date: { type: String, required: true },
 
     // Financial details
+    ratePerMile: {type: Number, required: true},
     revenue: { type: Number, required: true },
     grossProfitPercentage: { type: String, required: true },
     operatingProfitPercentage: { type: String, required: true },
