@@ -18,7 +18,7 @@ const jobSchema = new Schema({
     gasCost: { type: Number, required: true },
     ratePerMile: { type: Number, required: true },
     factor: { type: Number, required: true },
-    gAndA: { type: Number, required: true },
+    overhead: { type: Number, required: true },
     loan: { type: Number, required: true },
     odc: { type: Number, required: true },
     repairs: { type: Number, required: true },
