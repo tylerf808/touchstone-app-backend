@@ -84,7 +84,7 @@ router.post('/calculate', auth, async (req, res) => {
       distance: routeResponse.data.routes[0].summary.distance.value / 1609.34,
       driveTime: routeResponse.data.routes[0].summary.duration.text,
       client: logistics.client,
-      driver: logistics.driver.username,
+      driver: logistics.driver,
       admin: req.user.username,
       tractor: tractor.internalNum,
       tractorLease: (tractor.tractorLease / secondsInMonth) * routeDurationSeconds,
