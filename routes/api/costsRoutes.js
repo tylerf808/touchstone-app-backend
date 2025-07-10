@@ -5,8 +5,6 @@ const auth = require('../../utils/auth')
 const axios = require("axios");
 require('dotenv').config();
 
-// Azure Maps API key
-const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY;
 const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
 
 // Route calculation endpoint

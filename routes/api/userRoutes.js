@@ -314,12 +314,20 @@ router.post('/deleteUser', auth, async (req, res) => {
 //Get all users and tractors belonging to an admin
 router.get('/tractorsAndUsers', auth, async (req, res) => {
   try {
-    const drivers = await User.find({ accountType: 'driver', admin: req.user.username })
-    const dispatchers = await User.find({ admin: req.user.username, accountType: 'dispatcher' })
+    const drivers = []
+    const dispatchers = []
+    const users = await User.find({ admin: req.user.username })
+    users.forEach((user) => {
+      if(user.accountType.toLowerCase() === 'driver'){
+        drivers.push(user)
+      } else {
+        dispatchers.push(user)
+      }
+    })
     const tractors = await Tractor.find({ belongsTo: req.user.username })
     const pendingUsers = await PendingUser.find({admin: req.user.username})
     pendingUsers.forEach((user) => {
-      if(user.accountType === 'driver' || user.accountType === 'Driver'){
+      if(user.accountType.toLowerCase() === 'driver'){
         drivers.push(user)
       } else {
         dispatchers.push(user)
