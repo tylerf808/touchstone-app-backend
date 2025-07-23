@@ -42,6 +42,9 @@ const costsSchema = new Schema({
     },
     parking: {
         type: Number
+    },
+    loadsPerMonth: {
+        type: Number
     }
 },
     {
