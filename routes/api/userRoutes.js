@@ -71,6 +71,8 @@ router.post('/confirmPendingAccount', async (req, res) => {
         vin: tractor.vin,
         insurance: tractor.insurance,
         mpg: tractor.mpg,
+        tractorLease: tractor.tractorLease,
+        trailerLease: tractor.trailerLease,
         height: {
           ft: tractor.height.ft,
           in: tractor.height.in

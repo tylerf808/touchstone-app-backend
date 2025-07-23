@@ -41,7 +41,7 @@ router.post('/calculate', auth, async (req, res) => {
       }
     }
 
-    if(logistics.hazmat !== null){
+    if (logistics.hazmat !== null) {
       payload.truck.shippedHazardousGoods = logistics.hazmat
     }
 
@@ -55,16 +55,19 @@ router.post('/calculate', auth, async (req, res) => {
     const routeDurationSeconds = routeResponse.data.routes[0].summary.duration.value; // duration in seconds
     const secondsInMonth = 30.44 * 24 * 60 * 60;
 
-    const operatingCosts = {
-      tractorLease: (tractor.tractorLease / secondsInMonth) * routeDurationSeconds,
-      trailerLease: (tractor.trailerLease / secondsInMonth) * routeDurationSeconds,
+    //Fixed
+    const fixedCosts = {
+      //Divide by average number of loads a month
+      tractorLease: (tractor.tractorLease / 20),
+      trailerLease: (tractor.trailerLease / 20),
       repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
-      loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
-      parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
-      insurance: (userTractor.insurance / secondsInMonth) * routeDurationSeconds
+      loan: (userCosts.loan / 20),
+      parking: (userCosts.parking / 20),
+      insurance: (userTractor.insurance / 20)
     }
 
-    const fixedCosts = {
+    //Operating
+    const operatingCosts = {
       labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
       payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
       dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
@@ -82,14 +85,14 @@ router.post('/calculate', auth, async (req, res) => {
       distance: routeResponse.data.routes[0].summary.distance.value / 1609.34,
       driveTime: routeResponse.data.routes[0].summary.duration.text,
       client: logistics.client,
-      driver: logistics.driver,
+      driver: logistics.driver.name,
       admin: req.user.username,
       tractor: tractor.internalNum,
-      tractorLease: (tractor.tractorLease / secondsInMonth) * routeDurationSeconds,
-      trailerLease: (tractor.trailerLease / secondsInMonth) * routeDurationSeconds,
+      tractorLease: (tractor.tractorLease / 20),
+      trailerLease: (tractor.trailerLease / 20),
       repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
-      loan: (userCosts.loan / secondsInMonth) * routeDurationSeconds,
-      parking: (userCosts.parking / secondsInMonth) * routeDurationSeconds,
+      loan: (userCosts.loan / 20),
+      parking: (userCosts.parking / 20),
       labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
       payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
       dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
@@ -100,7 +103,7 @@ router.post('/calculate', auth, async (req, res) => {
       gasCost: routeResponse.data.routes[0].costs.fuel,
       ratePerMile: logistics.revenue / (routeResponse.data.routes[0].summary.distance.value / 1609.34),
       laborRatePercent: userCosts.laborRate,
-      insurance: (userTractor.insurance / secondsInMonth) * routeDurationSeconds
+      insurance: (userTractor.insurance / 20)
     }
 
     jobData.totalOperatingCost = Object.entries(operatingCosts)
@@ -109,7 +112,7 @@ router.post('/calculate', auth, async (req, res) => {
     jobData.totalFixedCost = Object.entries(fixedCosts)
       .reduce((sum, [_, value]) => sum + value, 0);
 
-    
+
     jobData.grossProfit = parseFloat(logistics.revenue) - jobData.totalOperatingCost - jobData.tolls
     jobData.operatingProfit = jobData.grossProfit - jobData.totalOperatingCost
 
@@ -165,9 +168,9 @@ router.post('/newCosts', async (req, res) => {
 })
 
 //Update costs
-router.put('/updateCosts', async (req, res) => {
+router.post('/updateCosts', auth, async (req, res) => {
   try {
-    const newCosts = await Costs.findOneAndUpdate({ belongsTo: req.body.username }, req.body, {
+    const newCosts = await Costs.findOneAndUpdate({ belongsTo: req.user.username }, req.body, {
       returnOriginal: false
     })
     res.status(200).json(newCosts)
