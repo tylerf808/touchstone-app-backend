@@ -29,8 +29,8 @@ router.post('/calculate', auth, async (req, res) => {
       ],
       vehicleType: "5AxlesTruck",
       serviceProvider: "tollguru",
-      getPathPolygon: true,
       getVehicleStops: true,
+      optimizedWaypoints: true,
       vehicle: {
         height: { value: tractor.height.ft + (tractor.height.in / 12), unit: 'feet' },
         width: { value: tractor.width.ft + (tractor.width.in / 12), unit: 'feet' },
@@ -41,7 +41,7 @@ router.post('/calculate', auth, async (req, res) => {
       }
     }
 
-    if (logistics.hazmat !== null) {
+    if (logistics.hazmat) {
       payload.truck.shippedHazardousGoods = logistics.hazmat
     }
 
@@ -52,18 +52,28 @@ router.post('/calculate', auth, async (req, res) => {
       }
     });
 
-    const routeDurationSeconds = routeResponse.data.routes[0].summary.duration.value; // duration in seconds
-    const secondsInMonth = 30.44 * 24 * 60 * 60;
+    const routes = routeResponse.data.routes
+
+    const cheapestRoute = routes.find(route => route.summary.diffs.cheapest === 0)
+    const fastestRoute = routes.find(route => route.summary.diffs.fastest === 0)
+
+    let selectedRoute
+
+    if(logistics.fastest === true){
+      selectedRoute = fastestRoute
+    } else {
+      selectedRoute = cheapestRoute
+    }
 
     //Fixed
     const fixedCosts = {
       //Divide by average number of loads a month
-      tractorLease: (tractor.tractorLease / 20),
-      trailerLease: (tractor.trailerLease / 20),
-      repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
-      loan: (userCosts.loan / 20),
-      parking: (userCosts.parking / 20),
-      insurance: (userTractor.insurance / 20)
+      tractorLease: (tractor.tractorLease / userCosts.loadsPerMonth),
+      trailerLease: (tractor.trailerLease / userCosts.loadsPerMonth),
+      repairs: (userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34),
+      loan: (userCosts.loan / userCosts.loadsPerMonth),
+      parking: (userCosts.parking / userCosts.loadsPerMonth),
+      insurance: (userTractor.insurance / userCosts.loadsPerMonth)
     }
 
     //Operating
@@ -82,28 +92,28 @@ router.post('/calculate', auth, async (req, res) => {
       dropOff: dropoffAddress,
       date: startDate,
       revenue: parseFloat(logistics.revenue),
-      distance: routeResponse.data.routes[0].summary.distance.value / 1609.34,
-      driveTime: routeResponse.data.routes[0].summary.duration.text,
+      distance: selectedRoute.summary.distance.value / 1609.34,
+      driveTime: selectedRoute.summary.duration.text,
       client: logistics.client,
       driver: logistics.driver.name,
       admin: req.user.username,
       tractor: tractor.internalNum,
-      tractorLease: (tractor.tractorLease / 20),
-      trailerLease: (tractor.trailerLease / 20),
-      repairs: (userCosts.repairs / 100) * (routeResponse.data.routes[0].summary.distance.value / 1609.34),
-      loan: (userCosts.loan / 20),
-      parking: (userCosts.parking / 20),
-      labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
-      payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
-      dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
-      factor: parseFloat(logistics.revenue) * (userCosts.factor / 100),
-      odc: parseFloat(logistics.revenue) * (userCosts.odc / 100),
-      overhead: parseFloat(logistics.revenue) * (userCosts.overhead / 100),
-      tolls: routeResponse.data.routes[0].costs.maximumTollCost || 0,
-      gasCost: routeResponse.data.routes[0].costs.fuel,
-      ratePerMile: logistics.revenue / (routeResponse.data.routes[0].summary.distance.value / 1609.34),
+      tractorLease: fixedCosts.tractorLease,
+      trailerLease: fixedCosts.trailerLease,
+      repairs: (userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34),
+      loan: fixedCosts.loan,
+      parking: fixedCosts.parking,
+      labor: operatingCosts.labor,
+      payrollTax: operatingCosts.payrollTax,
+      dispatch: operatingCosts.dispatch,
+      factor: operatingCosts.factor,
+      odc: operatingCosts.odc,
+      overhead: operatingCosts.overhead,
+      gasCost: selectedRoute.costs.fuel,
+      tolls: selectedRoute.costs.minimumTollCost,
+      ratePerMile: logistics.revenue / (selectedRoute.summary.distance.value / 1609.34),
       laborRatePercent: userCosts.laborRate,
-      insurance: (userTractor.insurance / 20)
+      insurance: fixedCosts.insurance
     }
 
     jobData.totalOperatingCost = Object.entries(operatingCosts)
@@ -111,7 +121,6 @@ router.post('/calculate', auth, async (req, res) => {
 
     jobData.totalFixedCost = Object.entries(fixedCosts)
       .reduce((sum, [_, value]) => sum + value, 0);
-
 
     jobData.grossProfit = parseFloat(logistics.revenue) - jobData.totalOperatingCost - jobData.tolls
     jobData.operatingProfit = jobData.grossProfit - jobData.totalOperatingCost
