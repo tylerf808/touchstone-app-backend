@@ -49,8 +49,6 @@ router.post('/confirmPendingAccount', async (req, res) => {
     });
 
     await Costs.create({
-      tractorLease: operationalCosts.tractorLease,
-      trailerLease: operationalCosts.trailerLease,
       repairs: operationalCosts.repairs,
       loan: operationalCosts.loan,
       parking: operationalCosts.parking,
@@ -61,6 +59,7 @@ router.post('/confirmPendingAccount', async (req, res) => {
       factor: fixedCosts.factor,
       odc: fixedCosts.odc,
       overhead: fixedCosts.overhead,
+      loadsPerMonth: operationalCosts.loadsPerMonth,
       belongsTo: account.username
     });
 

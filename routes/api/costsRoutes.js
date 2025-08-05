@@ -134,8 +134,6 @@ router.post('/calculate', auth, async (req, res) => {
 
     jobData.netProfitPercentage = ((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 
-    jobData.tollGuruResponse = routeResponse.data
-
     if (jobData.totalCost >= parseFloat(logistics.revenue)) {
       jobData.profitable = false
     } else {
