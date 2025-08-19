@@ -32,6 +32,10 @@ const tractorSchema = new Schema({
         type: Number,
         require: true
     },
+    depreciation: {
+        type: Number,
+        require: true
+    },
     height: {
         ft: {
             type: Number,

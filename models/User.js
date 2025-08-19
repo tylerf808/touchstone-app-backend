@@ -10,8 +10,7 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     password: {
         type: String,
@@ -46,7 +45,6 @@ userSchema.pre("save", async function (next) {
         try {
             const saltRounds = 10;
             this.password = await bcrypt.hash(this.password, saltRounds);
-            console.log("Password after hashing:", this.password);
         } catch (err) {
             return next(err);
         }

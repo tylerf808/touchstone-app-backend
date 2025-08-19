@@ -68,16 +68,16 @@ router.post('/calculate', auth, async (req, res) => {
     //Fixed
     const fixedCosts = {
       //Divide by average number of loads a month
-      tractorLease: (tractor.tractorLease / userCosts.loadsPerMonth),
-      trailerLease: (tractor.trailerLease / userCosts.loadsPerMonth),
-      repairs: (userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34),
-      loan: (userCosts.loan / userCosts.loadsPerMonth),
-      parking: (userCosts.parking / userCosts.loadsPerMonth),
-      insurance: (userTractor.insurance / userCosts.loadsPerMonth)
+      tractorLease: parseFloat(tractor.tractorLease / userCosts.loadsPerMonth),
+      trailerLease: parseFloat(tractor.trailerLease / userCosts.loadsPerMonth),
+      repairs: parseFloat((userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34)),
+      loan: parseFloat(userCosts.loan / userCosts.loadsPerMonth),
+      parking: parseFloat(userCosts.parking / userCosts.loadsPerMonth),
+      insurance: parseFloat(userTractor.insurance / userCosts.loadsPerMonth)
     }
 
     //Operating
-    const operatingCosts = {
+    const directCosts = {
       labor: parseFloat(logistics.revenue) * (userCosts.laborRate / 100),
       payrollTax: parseFloat(logistics.revenue) * (userCosts.payrollTax / 100),
       dispatch: parseFloat(logistics.revenue) * (userCosts.dispatch / 100),
@@ -103,12 +103,12 @@ router.post('/calculate', auth, async (req, res) => {
       repairs: (userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34),
       loan: fixedCosts.loan,
       parking: fixedCosts.parking,
-      labor: operatingCosts.labor,
-      payrollTax: operatingCosts.payrollTax,
-      dispatch: operatingCosts.dispatch,
-      factor: operatingCosts.factor,
-      odc: operatingCosts.odc,
-      overhead: operatingCosts.overhead,
+      labor: directCosts.labor,
+      payrollTax: directCosts.payrollTax,
+      dispatch: directCosts.dispatch,
+      factor: directCosts.factor,
+      odc: directCosts.odc,
+      overhead: directCosts.overhead,
       gasCost: selectedRoute.costs.fuel,
       tolls: selectedRoute.costs.minimumTollCost,
       ratePerMile: logistics.revenue / (selectedRoute.summary.distance.value / 1609.34),
@@ -116,21 +116,21 @@ router.post('/calculate', auth, async (req, res) => {
       insurance: fixedCosts.insurance
     }
 
-    jobData.totalOperatingCost = Object.entries(operatingCosts)
+    jobData.totalDirectCosts = Object.entries(directCosts)
       .reduce((sum, [_, value]) => sum + value, 0);
 
     jobData.totalFixedCost = Object.entries(fixedCosts)
       .reduce((sum, [_, value]) => sum + value, 0);
 
-    jobData.grossProfit = parseFloat(logistics.revenue) - jobData.totalOperatingCost - jobData.tolls
-    jobData.operatingProfit = jobData.grossProfit - jobData.totalOperatingCost
+    jobData.grossProfit = parseFloat(logistics.revenue) - jobData.totalDirectCosts - jobData.tolls
+    jobData.operatingProfit = jobData.grossProfit - jobData.totalFixedCost
 
     jobData.grossProfitPercentage = ((jobData.grossProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
     jobData.operatingProfitPercentage = ((jobData.operatingProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 
-    jobData.totalCost = jobData.totalOperatingCost + jobData.totalFixedCost + jobData.tolls + jobData.gasCost
+    jobData.totalCost = jobData.totalDirectCosts + jobData.totalFixedCost + parseFloat(jobData.tolls) + parseFloat(jobData.gasCost)
 
-    jobData.netProfit = parseFloat(logistics.revenue) - jobData.totalCost
+    jobData.netProfit = jobData.operatingProfit - jobData.totalCost
 
     jobData.netProfitPercentage = ((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 

@@ -23,6 +23,7 @@ router.post('/newTractor', auth, async (req, res) => {
             height: req.body.height,
             width: req.body.width,
             weight: req.body.weight,
+            depreciation: req.body.depreciation,
             belongsTo: req.user.username,
             tractorLease: req.body.tractorLease,
             trailerLease: req.body.trailerLease
@@ -54,6 +55,7 @@ router.post('/editTractor', auth, async (req, res) => {
                 internalNum: req.body.internalNum,
                 height: req.body.height,
                 width: req.body.width,
+                depreciation: req.body.depreciation,
                 weight: req.body.weight,
                 tractorLease: req.body.tractorLease,
                 trailerLease: req.body.trailerLease
