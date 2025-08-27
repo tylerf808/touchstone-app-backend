@@ -35,7 +35,7 @@ const jobSchema = new Schema({
     grossProfit: { type: Number, required: true },
     operatingProfit: { type: Number, required: true },
     totalFixedCost: { type: Number, required: true },
-    totalOperatingCost: { type: Number, required: true},
+    totalDirectCost: { type: Number, required: true},
 
     // Other details
     distance: { type: Number, required: true },

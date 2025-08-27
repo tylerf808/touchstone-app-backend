@@ -110,10 +110,11 @@ router.post('/calculate', auth, async (req, res) => {
       odc: directCosts.odc,
       overhead: directCosts.overhead,
       gasCost: selectedRoute.costs.fuel,
-      tolls: selectedRoute.costs.minimumTollCost,
+      tolls: selectedRoute.costs.minimumTollCost || 0,
       ratePerMile: logistics.revenue / (selectedRoute.summary.distance.value / 1609.34),
       laborRatePercent: userCosts.laborRate,
-      insurance: fixedCosts.insurance
+      insurance: fixedCosts.insurance,
+      depreciation: (tractor.depreciation / 12) / userCosts.loadsPerMonth
     }
 
     jobData.totalDirectCosts = Object.entries(directCosts)
@@ -128,9 +129,9 @@ router.post('/calculate', auth, async (req, res) => {
     jobData.grossProfitPercentage = ((jobData.grossProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
     jobData.operatingProfitPercentage = ((jobData.operatingProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 
-    jobData.totalCost = jobData.totalDirectCosts + jobData.totalFixedCost + parseFloat(jobData.tolls) + parseFloat(jobData.gasCost)
+    jobData.totalCost = jobData.totalDirectCosts + jobData.totalFixedCost + jobData.tolls + jobData.gasCost + jobData.depreciation
 
-    jobData.netProfit = jobData.operatingProfit - jobData.totalCost
+    jobData.netProfit = logistics.revenue - jobData.totalCost
 
     jobData.netProfitPercentage = ((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2).toString() + '%'
 
