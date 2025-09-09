@@ -23,6 +23,7 @@ const jobSchema = new Schema({
     loan: { type: Number, required: true },
     odc: { type: Number, required: true },
     repairs: { type: Number, required: true },
+    depreciation: { type: Number, required: true },
     labor: { type: Number, required: true },
     dispatch: { type: Number, required: true },
     payrollTax: { type: Number, required: true },
@@ -35,7 +36,7 @@ const jobSchema = new Schema({
     grossProfit: { type: Number, required: true },
     operatingProfit: { type: Number, required: true },
     totalFixedCost: { type: Number, required: true },
-    totalDirectCost: { type: Number, required: true},
+    totalDirectCosts: { type: Number, required: true},
 
     // Other details
     distance: { type: Number, required: true },

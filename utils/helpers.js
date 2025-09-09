@@ -88,6 +88,8 @@ function sampleRoutePoints(routePath, intervalKm) {
   return points;
 }
 
+
+
 function parseAddress(addressString) {
   // Remove extra spaces and split by commas
   const parts = addressString.trim().split(',').map(part => part.trim());
