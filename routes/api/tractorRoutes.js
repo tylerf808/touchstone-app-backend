@@ -47,7 +47,7 @@ router.post('/deleteTractor', auth, async (req, res) => {
 //Edit a tractor
 router.post('/editTractor', auth, async (req, res) => {
     try {
-        const updatedTractor = await Tractor.findOneAndUpdate({ internalNum: req.body.internalNum, belongsTo: req.user.username },
+        const updatedTractor = await Tractor.findOneAndUpdate({ _id: req.body._id, belongsTo: req.user.username },
             {
                 mpg: req.body.mpg,
                 insurance: req.body.insurance,

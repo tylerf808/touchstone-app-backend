@@ -4,6 +4,7 @@ const Costs = require('../../models/Costs')
 const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const axios = require("axios");
+const { type } = require('os');
 require('dotenv').config();
 
 const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
@@ -28,11 +29,11 @@ router.post('/calculate', auth, async (req, res) => {
           address: pickupAddress
         }
       ],
-      vehicleType: "5AxlesTruck",
       serviceProvider: "tollguru",
       getVehicleStops: true,
       optimizedWaypoints: true,
       vehicle: {
+        type: "5AxlesTruck",
         height: { value: tractor.height.ft + (tractor.height.in / 12), unit: 'feet' },
         width: { value: tractor.width.ft + (tractor.width.in / 12), unit: 'feet' },
         weight: { value: tractor.weight, unit: 'pounds' }
@@ -46,7 +47,7 @@ router.post('/calculate', auth, async (req, res) => {
       payload.truck.shippedHazardousGoods = logistics.hazmat
     }
 
-    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', payload, {
+    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints/#', payload, {
       headers: {
         "x-api-key": TOLL_GURU_KEY,
         'Content-Type': 'application/json'
@@ -86,8 +87,6 @@ router.post('/calculate', auth, async (req, res) => {
       odc: parseFloat((logistics.revenue * userCosts.odc / 100).toFixed(2)),
       overhead: parseFloat((logistics.revenue * userCosts.overhead / 100).toFixed(2)),
     }
-
-    console.log([fixedCosts, directCosts])
 
     const jobData = {
       start: startAddress,
