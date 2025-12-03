@@ -14,8 +14,15 @@ router.post('/calculate', auth, async (req, res) => {
   try {
     const { startAddress, pickupAddress, dropoffAddress, startDate, tractor, logistics } = req.body;
 
-    const userCosts = await Costs.findOne({ belongsTo: req.user.username })
-    const userTractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: tractor.internalNum })
+    let userCosts, userTractor
+
+    if (req.user.accountType === 'driver') {
+      userCosts = await Costs.findOne({ belongsTo: req.user.admin })
+      userTractor = await Tractor.findOne({ belongsTo: req.user.admin, internalNum: tractor.internalNum })
+    } else {
+      userCosts = await Costs.findOne({ belongsTo: req.user.username })
+      userTractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: tractor.internalNum })
+    }
 
     const payload = {
       from: {
@@ -61,7 +68,7 @@ router.post('/calculate', auth, async (req, res) => {
 
     let selectedRoute
 
-    if(logistics.fastest === true){
+    if (logistics.fastest === true) {
       selectedRoute = fastestRoute
     } else {
       selectedRoute = cheapestRoute
@@ -128,8 +135,8 @@ router.post('/calculate', auth, async (req, res) => {
     jobData.grossProfit = parseFloat((logistics.revenue - jobData.totalDirectCosts - jobData.tolls).toFixed(2))
     jobData.operatingProfit = parseFloat((jobData.grossProfit - jobData.totalFixedCost).toFixed(2))
 
-    jobData.grossProfitPercentage = parseFloat(((jobData.grossProfit /logistics.revenue) * 100).toFixed(2))
-    jobData.operatingProfitPercentage = parseFloat(((jobData.operatingProfit /logistics.revenue) * 100).toFixed(2))
+    jobData.grossProfitPercentage = parseFloat(((jobData.grossProfit / logistics.revenue) * 100).toFixed(2))
+    jobData.operatingProfitPercentage = parseFloat(((jobData.operatingProfit / logistics.revenue) * 100).toFixed(2))
 
     jobData.totalCost = parseFloat((jobData.totalDirectCosts + jobData.totalFixedCost + jobData.tolls + jobData.gasCost + jobData.depreciation))
 

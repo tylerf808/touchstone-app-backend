@@ -61,7 +61,7 @@ const tractorSchema = new Schema({
         require: true
     },
     currentDriver: {
-        type: Schema.Types.ObjectId,
+        type: String,
         ref: 'User'
     }
 },

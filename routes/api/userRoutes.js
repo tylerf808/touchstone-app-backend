@@ -315,28 +315,39 @@ router.post('/deleteUser', auth, async (req, res) => {
 //Get all users and tractors belonging to an admin
 router.get('/tractorsAndUsers', auth, async (req, res) => {
   try {
-    const drivers = []
-    const dispatchers = []
-    const users = await User.find({ admin: req.user.username })
-    users.forEach((user) => {
-      if (user.accountType.toLowerCase() === 'driver') {
-        drivers.push(user)
-      } else {
-        dispatchers.push(user)
-      }
-    })
-    const tractors = await Tractor.find({ belongsTo: req.user.username })
-    const pendingUsers = await PendingUser.find({ admin: req.user.username })
-    pendingUsers.forEach((user) => {
-      if (user.accountType.toLowerCase() === 'driver') {
-        drivers.push(user)
-      } else {
-        dispatchers.push(user)
-      }
-    })
+    let drivers = []
+    let dispatchers = []
+    let users = []
+    let tractors = []
+    let pendingUsers = []
+    if (req.user.accountType === 'driver') {
+       drivers = await User.find({ username: req.user.username, admin: req.user.admin })
+       tractors = await Tractor.find({ belongsTo: req.user.admin, currentDriver: req.user._id })
+    } else {
+      users = await User.find({ admin: req.user.username })
+      users.forEach((user) => {
+        if (user.accountType.toLowerCase() === 'driver') {
+          drivers.push(user)
+        } else {
+          dispatchers.push(user)
+        }
+      })
+
+      tractors = await Tractor.find({belongsTo: req.user.username})
+
+      pendingUsers.forEach((user) => {
+        if (user.accountType.toLowerCase() === 'driver') {
+          drivers.push(user)
+        } else {
+          dispatchers.push(user)
+        }
+      })
+    }
+
     const tractorsAndUsers = [drivers, tractors, dispatchers]
     res.status(200).json(tractorsAndUsers)
   } catch (error) {
+    console.log(error)
     res.status(500).json(error)
   }
 })
@@ -398,7 +409,7 @@ router.post('/sendConfirmationEmail', auth, async (req, res) => {
     const subConfirmationCode = Math.random().toString(36).substring(2, 15);
     const expirationTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await PendingUser.findOneAndDelete({admin: req.user.username, email: req.body.email})
+    await PendingUser.findOneAndDelete({ admin: req.user.username, email: req.body.email })
     await PendingUser.create({
       email: req.body.email,
       name: req.body.name,
@@ -418,10 +429,10 @@ router.post('/sendConfirmationEmail', auth, async (req, res) => {
 //Get pending users admin
 router.post('/getAdmin', async (req, res) => {
   try {
-    const pendingUser = await PendingUser.findOne({confirmationCode: req.body.confirmationCode})
-    const admin = await User.findOne({username: pendingUser.admin})
-    
-    res.status(200).json({admin: admin.name, accountType: pendingUser.accountType})
+    const pendingUser = await PendingUser.findOne({ confirmationCode: req.body.confirmationCode })
+    const admin = await User.findOne({ username: pendingUser.admin })
+
+    res.status(200).json({ admin: admin.name, accountType: pendingUser.accountType })
 
   } catch (error) {
     console.log(error)

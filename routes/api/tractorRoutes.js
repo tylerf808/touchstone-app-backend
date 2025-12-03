@@ -1,11 +1,18 @@
 const router = require('express').Router()
 const auth = require('../../utils/auth')
 const Tractor = require('../../models/Tractor')
+const User = require('../../models/User')
 
 //Get all tractors
 router.get('/getTractors', auth, async (req, res) => {
     try {
-        const tractors = await Tractor.find({ belongsTo: req.user.username })
+
+        let tractors
+        if (req.user.accountType === 'driver') {
+            tractors = await Tractor.find({ belongsTo: req.user.admin })
+        } else {
+            tractors = await Tractor.find({ belongsTo: req.user.username })
+        }
         res.status(200).json(tractors)
     } catch (error) {
         res.status(500).json(error)
