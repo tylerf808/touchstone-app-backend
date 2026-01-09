@@ -33,7 +33,8 @@ router.post('/deleteJobs', auth, async (req, res) => {
         selectedJobs.forEach(async (job) => {
             await Job.findOneAndDelete({_id: job._id})
         })
-        res.status(200).json({msg: 'Jobs deleted successfully'})
+        const newJobs = await Job.find({admin: req.user.username})
+        res.status(200).json(newJobs)
     } catch (error) {
         res.status(500).json(error)
     }
