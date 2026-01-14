@@ -33,6 +33,7 @@ const jobSchema = new Schema({
     trailerLease: { type: Number, required: true },
     tractorLease: { type: Number, required: true },
     tolls: { type: Number, required: true },
+    parking: { type: Number, required: true },
     grossProfit: { type: Number, required: true },
     operatingProfit: { type: Number, required: true },
     totalFixedCost: { type: Number, required: true },
