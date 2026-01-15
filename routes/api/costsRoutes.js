@@ -5,7 +5,6 @@ const User = require('../../models/User')
 const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const axios = require("axios");
-const { type } = require('os');
 require('dotenv').config();
 
 const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
@@ -14,7 +13,9 @@ const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
 router.post('/calculate', auth, async (req, res) => {
   try {
     const { startAddress, pickupAddress, dropoffAddress, startDate, logistics } = req.body;
-    const driver = await User.findOne({ username: logistics.driver })
+    console.log(logistics)
+    const driver = await User.findOne({ username: logistics.driver.username })
+    console.log(driver)
     let tractor, userCosts
     if (req.user.accountType === 'driver') {
       
