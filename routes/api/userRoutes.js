@@ -286,7 +286,8 @@ router.post('/editUser', auth, async (req, res) => {
       {
         email: req.body.email,
         name: req.body.name,
-        username: req.body.username
+        username: req.body.username,
+        assignedTractor: req.body.assignedTractor
       },
       {
         new: true

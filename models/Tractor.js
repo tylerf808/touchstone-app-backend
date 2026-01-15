@@ -59,10 +59,6 @@ const tractorSchema = new Schema({
     weight: {
         type: Number,
         require: true
-    },
-    currentDriver: {
-        type: String,
-        ref: 'User'
     }
 },
     {

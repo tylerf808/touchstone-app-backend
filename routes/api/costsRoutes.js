@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const { parse } = require('path');
 const Costs = require('../../models/Costs')
+const User = require('../../models/User')
 const Tractor = require('../../models/Tractor')
 const auth = require('../../utils/auth')
 const axios = require("axios");
@@ -12,17 +13,19 @@ const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
 // Route calculation endpoint
 router.post('/calculate', auth, async (req, res) => {
   try {
-    const { startAddress, pickupAddress, dropoffAddress, startDate, tractor, logistics } = req.body;
-
-    let userCosts, userTractor
-
+    const { startAddress, pickupAddress, dropoffAddress, startDate, logistics } = req.body;
+    const driver = await User.findOne({ username: logistics.driver })
+    let tractor, userCosts
     if (req.user.accountType === 'driver') {
-      userCosts = await Costs.findOne({ belongsTo: req.user.admin })
-      userTractor = await Tractor.findOne({ belongsTo: req.user.admin, internalNum: tractor.internalNum })
+      
+      tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.admin })
+      userCosts = await Costs.findOne({belongsTo: req.user.admin})
     } else {
-      userCosts = await Costs.findOne({ belongsTo: req.user.username })
-      userTractor = await Tractor.findOne({ belongsTo: req.user.username, internalNum: tractor.internalNum })
+      tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.username })
+      userCosts = await Costs.findOne({belongsTo: req.user.username})
     }
+
+    console.log([driver, tractor, userCosts])
 
     const payload = {
       from: {
@@ -82,7 +85,7 @@ router.post('/calculate', auth, async (req, res) => {
       repairs: parseFloat((userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34)),
       loan: parseFloat(userCosts.loan / userCosts.loadsPerMonth),
       parking: parseFloat(userCosts.parking / userCosts.loadsPerMonth),
-      insurance: parseFloat(userTractor.insurance / userCosts.loadsPerMonth)
+      insurance: parseFloat(tractor.insurance / userCosts.loadsPerMonth)
     }
 
     //Operating
@@ -104,7 +107,7 @@ router.post('/calculate', auth, async (req, res) => {
       distance: parseFloat((selectedRoute.summary.distance.value / 1609.34).toFixed(2)),
       driveTime: selectedRoute.summary.duration.text,
       client: logistics.client,
-      driver: logistics.driver.name,
+      driver: driver.name,
       admin: req.user.username,
       tractor: tractor.internalNum,
       tractorLease: fixedCosts.tractorLease,
