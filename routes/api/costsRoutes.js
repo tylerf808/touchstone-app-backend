@@ -119,9 +119,9 @@ router.post('/calculate', auth, async (req, res) => {
       tractor: tractor.internalNum,
       tractorLease: fixedCosts.tractorLease,
       trailerLease: fixedCosts.trailerLease,
-      repairs: parseFloat(((userCosts.repairs / 100) * (selectedRoute.summary.distance.value / 1609.34)).toFixed(2)),
+      repairs: otherCosts.repairs,
       loan: fixedCosts.loan,
-      parking: parseFloat(fixedCosts.parking),
+      parking: otherCosts.parking,
       labor: directCosts.labor,
       payrollTax: directCosts.payrollTax,
       dispatch: directCosts.dispatch,
@@ -133,7 +133,7 @@ router.post('/calculate', auth, async (req, res) => {
       ratePerMile: parseFloat((logistics.revenue / (selectedRoute.summary.distance.value / 1609.34)).toFixed(2)),
       laborRatePercent: userCosts.laborRate,
       insurance: fixedCosts.insurance,
-      depreciation: parseFloat(((tractor.depreciation / 12) / userCosts.loadsPerMonth).toFixed(2))
+      depreciation: otherCosts.depreciation
     }
 
     jobData.totalDirectCosts = Object.entries(directCosts)
