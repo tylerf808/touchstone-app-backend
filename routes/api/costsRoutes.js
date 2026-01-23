@@ -16,7 +16,6 @@ router.post('/calculate', auth, async (req, res) => {
     const driver = await User.findOne({ username: logistics.driver.username })
     let tractor, userCosts
     if (req.user.accountType === 'driver') {
-
       tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.admin })
       userCosts = await Costs.findOne({ belongsTo: req.user.admin })
     } else {
@@ -134,7 +133,7 @@ router.post('/calculate', auth, async (req, res) => {
     if(req.user.accountType === 'driver'){
       jobData.admin = req.user.admin
     } else {
-      jobData.admin = req.user.admin
+      jobData.admin = req.user.username
     }
 
     jobData.totalDirectCosts = Object.entries(directCosts)

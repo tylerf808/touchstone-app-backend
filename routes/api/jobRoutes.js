@@ -7,7 +7,12 @@ const auth = require('../../utils/auth')
 //Query all jobs related you user
 router.post('/allJobs', auth, async (req, res) => {
     try {
-        const jobData = await Job.find({ admin: req.user.username })
+        let jobData
+        if(req.user.accountType === 'driver'){
+            jobData = await Job.find({driver: req.user.username})
+        } else {
+            jobData = await Job.find({admin: req.user.username})
+        }
         res.status(200).json(jobData);
     } catch (error) {
         res.status(500).json(error)
