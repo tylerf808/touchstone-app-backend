@@ -13,9 +13,7 @@ const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
 router.post('/calculate', auth, async (req, res) => {
   try {
     const { startAddress, pickupAddress, dropoffAddress, startDate, logistics } = req.body;
-    console.log(logistics)
     const driver = await User.findOne({ username: logistics.driver.username })
-    console.log(driver)
     let tractor, userCosts
     if (req.user.accountType === 'driver') {
 
@@ -25,8 +23,6 @@ router.post('/calculate', auth, async (req, res) => {
       tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.username })
       userCosts = await Costs.findOne({ belongsTo: req.user.username })
     }
-
-    console.log([driver, tractor, userCosts])
 
     const payload = {
       from: {
@@ -115,7 +111,6 @@ router.post('/calculate', auth, async (req, res) => {
       driveTime: selectedRoute.summary.duration.text,
       client: logistics.client,
       driver: driver.name,
-      admin: req.user.username,
       tractor: tractor.internalNum,
       tractorLease: fixedCosts.tractorLease,
       trailerLease: fixedCosts.trailerLease,
@@ -134,6 +129,12 @@ router.post('/calculate', auth, async (req, res) => {
       laborRatePercent: userCosts.laborRate,
       insurance: fixedCosts.insurance,
       depreciation: otherCosts.depreciation
+    }
+
+    if(req.user.accountType === 'driver'){
+      jobData.admin = req.user.admin
+    } else {
+      jobData.admin = req.user.admin
     }
 
     jobData.totalDirectCosts = Object.entries(directCosts)
