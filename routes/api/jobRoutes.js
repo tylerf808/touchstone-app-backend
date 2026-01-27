@@ -3,18 +3,23 @@ const Costs = require('../../models/Costs');
 const Job = require('../../models/Job')
 const auth = require('../../utils/auth')
 
+
 //////GET Routes 
 //Query all jobs related you user
 router.post('/allJobs', auth, async (req, res) => {
     try {
-        let jobData
-        if(req.user.accountType === 'driver'){
-            jobData = await Job.find({driver: req.user.username})
+
+        if (req.user.accountType === 'driver') {
+            const jobData = await Job.find({ driver: req.user.name })
+            console.log(jobData)
+            res.status(200).json(jobData);
+
         } else {
-            jobData = await Job.find({admin: req.user.username})
+            const jobData = await Job.find({ admin: req.user.username })
+            res.status(200).json(jobData);
         }
-        res.status(200).json(jobData);
     } catch (error) {
+        console.log(error)
         res.status(500).json(error)
     }
 })
@@ -36,9 +41,9 @@ router.post('/deleteJobs', auth, async (req, res) => {
     try {
         const selectedJobs = req.body.jobs
         selectedJobs.forEach(async (job) => {
-            await Job.findOneAndDelete({_id: job._id})
+            await Job.findOneAndDelete({ _id: job._id })
         })
-        const newJobs = await Job.find({admin: req.user.username})
+        const newJobs = await Job.find({ admin: req.user.username })
         res.status(200).json(newJobs)
     } catch (error) {
         res.status(500).json(error)
