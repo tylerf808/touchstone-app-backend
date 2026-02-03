@@ -1,126 +1,100 @@
-const axios = require("axios");
 
 
-const routeCallConfig = {
-  headers: {
-    "X-Goog-FieldMask": "routes.distanceMeters,routes.travelAdvisory,routes.duration",
-  },
-};
+function calculateRoute(route, user, tractor, userCosts, logistics, driver, startAddress, pickupAddress,
+   dropoffAddress, startDate) {
 
-const url =
-  " https://routes.googleapis.com/directions/v2:computeRoutes?key=AIzaSyDcXIOrxmAOOPEvqjLEXVeZb9mdTyUqS6k";
+    console.log(tractor)
 
-
-const getDirections = async (start, pickUp, dropOff) => {
-  const directionsResObj = await axios.post(url, {
-    origin: {address: start},
-    destination: {address: dropOff},
-    intermediates: [
-      {
-        address: pickUp
-      }
-    ],
-    extraComputations: ["TOLLS"]
-  }, routeCallConfig).then((response) => {
-    return response.data;
-  });
-  return directionsResObj;
-};
-
-async function findRestStops(routePath) {
-  try {
-    const { data } = await axios.get('https://gasprices.aaa.com/');
-    const $ = cheerio.load(data);
-
-    // Select the first row of the table with class 'table-mob'
-    const firstRow = $('table.table-mob tbody tr').first();
-    
-    // The fifth td (index 4) is the national average diesel price
-    const dieselPrice = firstRow.find('td').eq(4).text().trim();
-
-    if (!dieselPrice) throw new Error('Diesel price not found');
-    return parseFloat(dieselPrice.replace(/[^0-9.]/g, ''));
-  } catch (err) {
-    console.error('Error scraping diesel price:', err.message);
-    return null;
-  }
-}
-
-// Helper function to sample points along the route
-function sampleRoutePoints(routePath, intervalKm) {
-  const points = [];
-  let distanceCovered = 0;
-  
-  // Calculate distance between two lat/lng points in kilometers
-  function calculateDistance(point1, point2) {
-      const R = 6371; // Earth's radius in kilometers
-      const lat1 = point1.lat * Math.PI / 180;
-      const lat2 = point2.lat * Math.PI / 180;
-      const deltaLat = (point2.lat - point1.lat) * Math.PI / 180;
-      const deltaLng = (point2.lng - point1.lng) * Math.PI / 180;
-
-      const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
+  const fixedCosts = {
+    //Divide by average number of loads a month
+    tractorLease: parseFloat(tractor.tractorLease / userCosts.loadsPerMonth),
+    trailerLease: parseFloat(tractor.trailerLease / userCosts.loadsPerMonth),
+    loan: parseFloat(userCosts.loan / userCosts.loadsPerMonth),
+    insurance: parseFloat(tractor.insurance / userCosts.loadsPerMonth),
+    overhead: parseFloat((logistics.revenue * userCosts.overhead / 100).toFixed(2)),
   }
 
-  // Add first point
-  points.push(routePath[0]);
-
-  // Sample points based on actual distance along route
-  for (let i = 1; i < routePath.length; i++) {
-      const distance = calculateDistance(routePath[i-1], routePath[i]);
-      distanceCovered += distance;
-
-      if (distanceCovered >= intervalKm) {
-          points.push(routePath[i]);
-          distanceCovered = 0; // Reset distance counter
-      }
+  const otherCosts = {
+    depreciation: parseFloat(((tractor.depreciation / 12) / userCosts.loadsPerMonth).toFixed(2)),
+    parking: parseFloat(userCosts.parking / userCosts.loadsPerMonth),
+    repairs: parseFloat((userCosts.repairs / 100) * (route.summary.distance.value / 1609.34))
   }
 
-  // Always include last point if it's not already included
-  if (points[points.length - 1] !== routePath[routePath.length - 1]) {
-      points.push(routePath[routePath.length - 1]);
+  //Operating
+  const directCosts = {
+    labor: parseFloat((logistics.revenue * userCosts.laborRate / 100).toFixed(2)),
+    payrollTax: parseFloat((logistics.revenue * userCosts.payrollTax / 100).toFixed(2)),
+    dispatch: parseFloat((logistics.revenue * userCosts.dispatch / 100).toFixed(2)),
+    factor: parseFloat((logistics.revenue * userCosts.factor / 100).toFixed(2)),
+    odc: parseFloat((logistics.revenue * userCosts.odc / 100).toFixed(2)),
+    tolls: parseFloat(route.costs.minimumTollCost || 0),
+    gasCost: parseFloat(route.costs.fuel)
   }
 
-  return points;
-}
+  const jobData = {
+    start: startAddress,
+    pickUp: pickupAddress,
+    dropOff: dropoffAddress,
+    date: startDate,
+    revenue: parseFloat(logistics.revenue),
+    distance: parseFloat((route.summary.distance.value / 1609.34).toFixed(2)),
+    driveTime: route.summary.duration.text,
+    client: logistics.client,
+    driver: driver.name,
+    tractor: tractor.internalNum,
+    tractorLease: fixedCosts.tractorLease,
+    trailerLease: fixedCosts.trailerLease,
+    repairs: otherCosts.repairs,
+    loan: fixedCosts.loan,
+    parking: otherCosts.parking,
+    labor: directCosts.labor,
+    payrollTax: directCosts.payrollTax,
+    dispatch: directCosts.dispatch,
+    factor: directCosts.factor,
+    odc: directCosts.odc,
+    overhead: fixedCosts.overhead,
+    gasCost: route.costs.fuel,
+    tolls: route.costs.minimumTollCost || 0,
+    ratePerMile: parseFloat((logistics.revenue / (route.summary.distance.value / 1609.34)).toFixed(2)),
+    laborRatePercent: userCosts.laborRate,
+    insurance: fixedCosts.insurance,
+    depreciation: otherCosts.depreciation
+  }
 
-
-
-function parseAddress(addressString) {
-  // Remove extra spaces and split by commas
-  const parts = addressString.trim().split(',').map(part => part.trim());
-  
-  let streetAddress, city, state;
-  
-  if (parts.length >= 3) {
-    // Format: "123 Main St, New York, NY"
-    streetAddress = parts[0];
-    city = parts[1];
-    state = parts[2];
-  } else if (parts.length === 2) {
-    // Format: "123 Main St, New York NY"
-    streetAddress = parts[0];
-    // Split last part by space to separate city and state
-    const cityState = parts[1].trim().split(' ');
-    state = cityState.pop(); // Get last word as state
-    city = cityState.join(' '); // Remaining words are city
+  if (user.accountType === 'driver') {
+    jobData.admin = user.admin
   } else {
-    // Try to parse single string format: "123 Main St New York NY"
-    const words = parts[0].split(' ');
-    state = words.pop(); // Last word is state
-    city = words.pop(); // Second to last word is city
-    streetAddress = words.join(' '); // Remaining is street address
+    jobData.admin = user.username
   }
-  
-  return {
-    StreetAddress: streetAddress || '',
-    City: city || '',
-    State: state || ''
-  };
+
+  jobData.totalDirectCosts = Object.entries(directCosts)
+    .reduce((sum, [_, value]) => parseFloat((sum + value).toFixed(2)), 0);
+
+  jobData.totalFixedCost = Object.entries(fixedCosts)
+    .reduce((sum, [_, value]) => parseFloat((sum + value).toFixed(2)), 0);
+
+  jobData.totalOtherCosts = Object.entries(otherCosts)
+    .reduce((sum, [_, value]) => parseFloat((sum + value).toFixed(2)), 0);
+
+  jobData.grossProfit = parseFloat((logistics.revenue - jobData.totalDirectCosts).toFixed(2))
+  jobData.operatingProfit = parseFloat((jobData.grossProfit - jobData.totalFixedCost).toFixed(2))
+
+  jobData.grossProfitPercentage = parseFloat(((jobData.grossProfit / logistics.revenue) * 100).toFixed(2))
+  jobData.operatingProfitPercentage = parseFloat(((jobData.operatingProfit / logistics.revenue) * 100).toFixed(2))
+
+  jobData.totalCost = parseFloat(jobData.totalDirectCosts + jobData.totalFixedCost + jobData.totalOtherCosts)
+
+  jobData.netProfit = parseFloat((logistics.revenue - jobData.totalCost).toFixed(2))
+
+  jobData.netProfitPercentage = parseFloat(((jobData.netProfit / parseFloat(logistics.revenue)) * 100).toFixed(2))
+
+  if (jobData.totalCost >= parseFloat(logistics.revenue)) {
+    jobData.profitable = false
+  } else {
+    jobData.profitable = true
+  }
+
+  return jobData
 }
 
-module.exports = { getDirections, findRestStops, parseAddress };
+module.exports = { calculateRoute };
