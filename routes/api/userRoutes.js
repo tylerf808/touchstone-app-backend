@@ -244,13 +244,13 @@ router.post('/newAdmin', async (req, res) => {
 })
 
 //Create a dispatcher
-router.post('/newDispatcher', async (req, res) => {
+router.post('/newDispatcher', auth, async (req, res) => {
   try {
     const userData = await User.create({
       email: req.body.email,
       username: req.body.username,
       accountType: "dispatcher",
-      admin: req.body.admin,
+      admin: req.user.username,
       name: req.body.name,
       company: req.body.company,
       password: req.body.password
@@ -322,8 +322,11 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
     let tractors = []
     let pendingUsers = []
     if (req.user.accountType === 'driver') {
-       drivers = await User.find({ username: req.user.username, admin: req.user.admin })
-       tractors = await Tractor.find({ belongsTo: req.user.admin})
+      drivers = await User.find({ username: req.user.username, admin: req.user.admin })
+      tractors = await Tractor.find({ belongsTo: req.user.admin })
+    } else if (req.user.accountType === 'dispatcher') {
+      drivers = await User.find({ admin: req.user.admin, accountType: 'driver' })
+      tractors = await Tractor.find({ belongsTo: req.user.admin })
     } else {
       users = await User.find({ admin: req.user.username })
       users.forEach((user) => {
@@ -334,7 +337,7 @@ router.get('/tractorsAndUsers', auth, async (req, res) => {
         }
       })
 
-      tractors = await Tractor.find({belongsTo: req.user.username})
+      tractors = await Tractor.find({ belongsTo: req.user.username })
 
       pendingUsers.forEach((user) => {
         if (user.accountType.toLowerCase() === 'driver') {
@@ -475,8 +478,14 @@ router.post('/confirm/:code', async (req, res) => {
 //Get all users belonging to an admin
 router.get('/getUsers', auth, async (req, res) => {
   try {
-    const users = await User.find({ admin: req.user.username })
-    const pendingUsers = await PendingUser.find({ admin: req.user.username })
+    let users, pendingUsers
+    if (req.user.accountType === 'admin') {
+      users = await User.find({ admin: req.user.username })
+      pendingUsers = await PendingUser.find({ admin: req.user.username })
+    } else {
+      users = await User.find({ admin: req.user.admin })
+      pendingUsers = await PendingUser.find({ admin: req.user.admin })
+    }
     res.status(200).json({ users: users, pendingUsers: pendingUsers })
   } catch (error) {
     res.status(500).json(error)

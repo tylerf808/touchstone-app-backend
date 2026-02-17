@@ -19,6 +19,9 @@ router.post('/calculate', auth, async (req, res) => {
     if (req.user.accountType === 'driver') {
       tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.admin })
       userCosts = await Costs.findOne({ belongsTo: req.user.admin })
+    } else if(req.user.accountType === 'dispatcher') {
+      tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.admin })
+      userCosts = await Costs.findOne({ belongsTo: req.user.admin })
     } else {
       tractor = await Tractor.findOne({ internalNum: driver.assignedTractor, belongsTo: req.user.username })
       userCosts = await Costs.findOne({ belongsTo: req.user.username })

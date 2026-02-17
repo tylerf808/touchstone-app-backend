@@ -8,10 +8,10 @@ router.get('/getTractors', auth, async (req, res) => {
     try {
 
         let tractors
-        if (req.user.accountType === 'driver') {
-            tractors = await Tractor.find({ belongsTo: req.user.admin })
-        } else {
+        if (req.user.accountType === 'admin') {
             tractors = await Tractor.find({ belongsTo: req.user.username })
+        } else {
+            tractors = await Tractor.find({ belongsTo: req.user.admin })
         }
         res.status(200).json(tractors)
     } catch (error) {
