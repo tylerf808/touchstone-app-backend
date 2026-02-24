@@ -52,4 +52,17 @@ router.post('/deleteJobs', auth, async (req, res) => {
     }
 })
 
+// Update a single job
+router.post('/updateJob', auth, async (req, res) => {
+    try {
+        const jobId = req.body._id;
+        if (!jobId) return res.status(400).json({ message: 'Missing job _id' })
+        // Update and return the new document
+        const updatedJob = await Job.findOneAndUpdate({ _id: jobId }, req.body, { new: true })
+        res.status(200).json(updatedJob)
+    } catch (error) {
+        console.log(error)
+        res.status(500).json(error)
+    }
+})
 module.exports = router
