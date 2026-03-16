@@ -3,6 +3,25 @@ const auth = require('../../utils/auth')
 const Tractor = require('../../models/Tractor')
 const User = require('../../models/User')
 
+//Get whole fleet
+router.get('/getFleet', auth, async (req, res) => {
+    try {
+        let tractors, drivers, dispatchers
+        if(req.user.accountType === 'dispatcher'){
+            tractors = await Tractor.find({belongsTo: req.user.admin})
+            drivers = await User.find({belongsTo: req.user.admin, accountType: 'driver'})
+            dispatchers = await User.find({belongsTo: req.user.admin, accountType: 'dispatcher'})
+        } else {
+            tractors = await Tractor.find({belongsTo: req.user.username})
+            drivers = await User.find({belongsTo: req.user.username, accountType: 'driver'})
+            dispatchers = await User.find({belongsTo: req.user.username, accountType: 'dispatcher'})
+        }
+        res.status(200).json([tractors, drivers, dispatchers])
+    } catch (error) {
+        res.status(500).json(error)
+    }
+})
+
 //Get all tractors
 router.get('/getTractors', auth, async (req, res) => {
     try {
