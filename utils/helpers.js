@@ -5,7 +5,7 @@ async function fuelPricing() {
 
   const response = await fetch(
     "https://api.collectapi.com/gasPrice/allUsaPrice",
-    { headers: { "Authorization": `apikey ${process.env.COLLECT_API_KEY}` } }
+    { headers: { "Authorization": `${process.env.COLLECT_API_KEY}` } }
   );
   
   // Check if response is ok
