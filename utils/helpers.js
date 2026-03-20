@@ -1,9 +1,43 @@
+require('dotenv').config();
+const FuelPrice = require('../models/FuelPrice')
 
+async function fuelPricing() {
+
+  const response = await fetch(
+    "https://api.collectapi.com/gasPrice/allUsaPrice",
+    { headers: { "Authorization": `apikey ${process.env.COLLECT_API_KEY}` } }
+  );
+  
+  // Check if response is ok
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`API Error ${response.status}: ${text}`);
+  }
+  
+  const data = await response.json();
+  
+  // Transform array into object with state name as key
+  const pricesObject = {};
+  data.result.forEach(state => {
+    pricesObject[state.name] = {
+      currency: state.currency,
+      regular: state.regular,
+      midGrade: state.midGrade,
+      premium: state.premium,
+      diesel: state.diesel
+    };
+  });
+  
+  // Use findOneAndUpdate with upsert to create if doesn't exist, update if does
+  await FuelPrice.findOneAndUpdate(
+    {}, // Empty filter matches the single document (or creates if doesn't exist)
+    { prices: pricesObject },
+    { upsert: true, new: true }
+  );
+}
 
 function calculateRoute(route, user, tractor, userCosts, logistics, driver, startAddress, pickupAddress,
-   dropoffAddress, startDate) {
-
-    console.log(tractor)
+  dropoffAddress, startDate) {
 
   const fixedCosts = {
     //Divide by average number of loads a month
@@ -97,4 +131,4 @@ function calculateRoute(route, user, tractor, userCosts, logistics, driver, star
   return jobData
 }
 
-module.exports = { calculateRoute };
+module.exports = { calculateRoute, fuelPricing };
