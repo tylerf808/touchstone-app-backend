@@ -10,7 +10,7 @@ router.post('/allJobs', auth, async (req, res) => {
     try {
 
         if (req.user.accountType === 'driver') {
-            const jobData = await Job.find({ driver: req.user.name })
+            const jobData = await Job.find({ driver: req.user.name, admin: req.user.admin })
             res.status(200).json(jobData);
 
         } else if (req.user.accountType === 'dispatcher') {
