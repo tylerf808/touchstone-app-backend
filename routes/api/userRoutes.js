@@ -282,19 +282,16 @@ router.post('/newDriver', auth, async (req, res) => {
 //Edit user
 router.post('/editUser', auth, async (req, res) => {
   try {
-    const editedUser = await User.findOneAndUpdate({ _id: req.body._id },
-      {
-        email: req.body.email,
-        name: req.body.name,
-        username: req.body.username,
-        assignedTractor: req.body.assignedTractor
-      },
-      {
-        new: true
-      })
-    res.status(200).json(editedUser)
+    const updateData = {};
+    if (req.body.email !== undefined) updateData.email = req.body.email;
+    if (req.body.name !== undefined) updateData.name = req.body.name;
+    if (req.body.username !== undefined) updateData.username = req.body.username;
+    if (req.body.assignedTractor !== undefined) updateData.assignedTractor = req.body.assignedTractor;
+
+    const editedUser = await User.findOneAndUpdate({ _id: req.body._id }, { $set: updateData }, { new: true });6
+    res.status(200).json(editedUser);
   } catch (error) {
-    res.status(500).json(error)
+    res.status(500).json(error);
   }
 })
 
