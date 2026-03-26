@@ -31,6 +31,7 @@ router.post('/allJobs', auth, async (req, res) => {
 router.post('/newJob', auth, async (req, res) => {
     try {
         const newJob = await Job.create(req.body)
+        console.log(newJob)
         res.status(200).json(newJob)
     } catch (error) {
         console.log(error)

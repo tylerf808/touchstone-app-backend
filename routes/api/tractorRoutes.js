@@ -11,10 +11,14 @@ router.get('/getFleet', auth, async (req, res) => {
             tractors = await Tractor.find({belongsTo: req.user.admin})
             drivers = await User.find({belongsTo: req.user.admin, accountType: 'driver'})
             dispatchers = await User.find({belongsTo: req.user.admin, accountType: 'dispatcher'})
-        } else {
+        } else if(req.user.accountType === 'admin') {
             tractors = await Tractor.find({belongsTo: req.user.username})
             drivers = await User.find({belongsTo: req.user.username, accountType: 'driver'})
             dispatchers = await User.find({belongsTo: req.user.username, accountType: 'dispatcher'})
+        } else {
+            tractors = await Tractor.find({belongsTo: req.user.admin})
+            drivers = await User.find({belongsTo: req.user.admin, accountType: 'driver'})
+            dispatchers = await User.find({belongsTo: req.user.admin, accountType: 'dispatcher'})
         }
         res.status(200).json([tractors, drivers, dispatchers])
     } catch (error) {
