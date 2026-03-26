@@ -9,16 +9,16 @@ router.get('/getFleet', auth, async (req, res) => {
         let tractors, drivers, dispatchers
         if(req.user.accountType === 'dispatcher'){
             tractors = await Tractor.find({belongsTo: req.user.admin})
-            drivers = await User.find({belongsTo: req.user.admin, accountType: 'driver'})
-            dispatchers = await User.find({belongsTo: req.user.admin, accountType: 'dispatcher'})
+            drivers = await User.find({admin: req.user.admin, accountType: 'driver'})
+            dispatchers = await User.find({admin: req.user.admin, accountType: 'dispatcher'})
         } else if(req.user.accountType === 'admin') {
             tractors = await Tractor.find({belongsTo: req.user.username})
-            drivers = await User.find({belongsTo: req.user.username, accountType: 'driver'})
-            dispatchers = await User.find({belongsTo: req.user.username, accountType: 'dispatcher'})
+            drivers = await User.find({admin: req.user.username, accountType: 'driver'})
+            dispatchers = await User.find({admin: req.user.username, accountType: 'dispatcher'})
         } else {
             tractors = await Tractor.find({belongsTo: req.user.admin})
-            drivers = await User.find({belongsTo: req.user.admin, accountType: 'driver'})
-            dispatchers = await User.find({belongsTo: req.user.admin, accountType: 'dispatcher'})
+            drivers = await User.find({admin: req.user.admin, accountType: 'driver'})
+            dispatchers = await User.find({admin: req.user.admin, accountType: 'dispatcher'})
         }
         res.status(200).json([tractors, drivers, dispatchers])
     } catch (error) {
