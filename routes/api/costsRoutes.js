@@ -3,12 +3,43 @@ const { parse } = require('path');
 const Costs = require('../../models/Costs')
 const User = require('../../models/User')
 const Tractor = require('../../models/Tractor')
+const FuelPrice = require('../../models/FuelPrice')
 const auth = require('../../utils/auth')
 const { calculateRoute } = require('../../utils/helpers.js')
 const axios = require("axios");
 require('dotenv').config();
 
 const TOLL_GURU_KEY = process.env.TOLL_GURU_KEY;
+
+const stateAbbreviations = {
+  'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+  'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+  'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+  'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+  'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+  'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+  'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+  'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+  'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+  'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
+  'DC': 'District Of Columbia'
+};
+
+function getStateFromAddress(address) {
+  const parts = address.split(',').map(p => p.trim());
+  // Google Places format: "123 Main St, City, ST 12345, USA"
+  // State abbreviation is in the second-to-last part, before the zip
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const words = parts[i].split(' ').map(w => w.trim()).filter(Boolean);
+    for (const word of words) {
+      const upper = word.toUpperCase();
+      if (stateAbbreviations[upper]) {
+        return stateAbbreviations[upper];
+      }
+    }
+  }
+  return null;
+}
 
 // Route calculation endpoint
 router.post('/calculate', auth, async (req, res) => {
@@ -57,7 +88,7 @@ router.post('/calculate', auth, async (req, res) => {
       payload.truck.shippedHazardousGoods = logistics.hazmat
     }
 
-    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints/#', payload, {
+    const routeResponse = await axios.post('https://apis.tollguru.com/toll/v2/origin-destination-waypoints', payload, {
       headers: {
         "x-api-key": TOLL_GURU_KEY,
         'Content-Type': 'application/json'
@@ -65,6 +96,26 @@ router.post('/calculate', auth, async (req, res) => {
     });
 
     const routes = routeResponse.data.routes
+
+    // Look up diesel prices from the 3 address states
+    const stateNames = [
+      getStateFromAddress(startAddress),
+      getStateFromAddress(pickupAddress),
+      getStateFromAddress(dropoffAddress)
+    ].filter(Boolean);
+
+    let avgDieselPrice = 0;
+    const fuelData = await FuelPrice.findOne({});
+    if (fuelData && fuelData.prices && stateNames.length > 0) {
+      const dieselPrices = stateNames
+        .map(name => fuelData.prices.get(name))
+        .filter(entry => entry && entry.diesel)
+        .map(entry => parseFloat(entry.diesel.replace('$', '')));
+
+      if (dieselPrices.length > 0) {
+        avgDieselPrice = dieselPrices.reduce((sum, p) => sum + p, 0) / dieselPrices.length;
+      }
+    }
 
     const calcResults = []
 
@@ -84,6 +135,15 @@ router.post('/calculate', auth, async (req, res) => {
         repairs: parseFloat((userCosts.repairs / 100) * (route.summary.distance.value / 1609.34))
       }
 
+      const distanceMiles = route.summary.distance.value / 1609.34;
+      if (!avgDieselPrice || avgDieselPrice <= 0) {
+        throw new Error('Unable to retrieve diesel prices for the provided addresses');
+      }
+      if (!tractor.mpg || tractor.mpg <= 0) {
+        throw new Error('Tractor is missing a valid MPG value');
+      }
+      const gasCost = parseFloat(((distanceMiles / tractor.mpg) * avgDieselPrice).toFixed(2));
+
       const directCosts = {
         labor: parseFloat((logistics.revenue * userCosts.laborRate / 100).toFixed(2)),
         payrollTax: parseFloat((logistics.revenue * userCosts.payrollTax / 100).toFixed(2)),
@@ -91,7 +151,7 @@ router.post('/calculate', auth, async (req, res) => {
         factor: parseFloat((logistics.revenue * userCosts.factor / 100).toFixed(2)),
         odc: parseFloat((logistics.revenue * userCosts.odc / 100).toFixed(2)),
         tolls: parseFloat(route.costs.minimumTollCost || 0),
-        gasCost: parseFloat(route.costs.fuel)
+        gasCost: gasCost
       }
 
       const jobData = {
@@ -116,7 +176,7 @@ router.post('/calculate', auth, async (req, res) => {
         factor: directCosts.factor,
         odc: directCosts.odc,
         overhead: fixedCosts.overhead,
-        gasCost: route.costs.fuel,
+        gasCost: gasCost,
         tolls: route.costs.minimumTollCost || 0,
         ratePerMile: parseFloat((logistics.revenue / (route.summary.distance.value / 1609.34)).toFixed(2)),
         laborRatePercent: userCosts.laborRate,
