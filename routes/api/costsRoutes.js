@@ -124,7 +124,7 @@ router.post('/calculate', auth, async (req, res) => {
         depreciation: otherCosts.depreciation
       }
 
-      if (req.user.accountType === 'driver') {
+      if (req.user.accountType === 'driver' || req.user.accountType === 'dispatcher') {
         jobData.admin = req.user.admin
       } else {
         jobData.admin = req.user.username
